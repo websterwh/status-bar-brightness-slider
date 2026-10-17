@@ -17,12 +17,12 @@
 
         <activity
             android:name=".IndicatorAppearanceActivity"
-            android:label="Indicator appearance"
+            android:label="@string/activity_indicator_appearance"
             android:exported="false" />
 
         <service
             android:name=".AutoBrightnessTileService"
-            android:label="Auto brightness"
+            android:label="@string/service_auto_brightness"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true"
             android:icon="@drawable/ic_tile_auto_brightness">

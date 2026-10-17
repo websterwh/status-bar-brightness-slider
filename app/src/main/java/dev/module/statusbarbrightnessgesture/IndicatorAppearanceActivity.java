@@ -150,7 +150,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         // The page OPENS collapsed (small toolbar title, like the A16 settings pages);
         // the large title only appears when the user scrolls up to reveal it, crossfading
         // with this one via the scroll listener below.
-        toolbar.setTitle("Indicator appearance");
+        toolbar.setTitle(R.string.appearance_title);
         final TextView collapsedTitle = styleToolbarTitle(toolbar);
         if (collapsedTitle != null) collapsedTitle.setAlpha(1f);
         root.addView(toolbar, new LinearLayout.LayoutParams(
@@ -180,7 +180,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         // It floats in the overlay (like the preview) so the top-edge overscroll stretch
         // never stretches it; a placeholder reserves its space in the scroll.
         TextView pageTitle = new TextView(this);
-        pageTitle.setText("Indicator appearance");
+        pageTitle.setText(R.string.appearance_title);
         pageTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 32);
         pageTitle.setTypeface(android.graphics.Typeface.create(
                 "sans-serif-medium", android.graphics.Typeface.NORMAL));
@@ -246,14 +246,14 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
                 collapsedTitle.setAlpha(Math.max(0f, (p - 0.5f) / 0.5f));
         });
 
-        addSectionLabel(content, "Shape", 0);
+        addSectionLabel(content, getString(R.string.appearance_section_shape), 0);
         buildShapeSection(content);
-        addSectionLabel(content, "Color");
+        addSectionLabel(content, getString(R.string.appearance_section_color));
         buildColorSection(content);
         buildTextColorSection(content);
-        addSectionLabel(content, "Opacity");
+        addSectionLabel(content, getString(R.string.appearance_section_opacity));
         buildOpacitySection(content);
-        addSectionLabel(content, "Effects");
+        addSectionLabel(content, getString(R.string.appearance_section_effects));
         buildShadowSection(content);
 
         refreshColorSwatches();
@@ -336,7 +336,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         int[] myModes  = {Prefs.COLOR_MODE_ACCENT_LIGHT, Prefs.COLOR_MODE_ACCENT,
                           Prefs.COLOR_MODE_ACCENT_DARK, Prefs.COLOR_MODE_TERTIARY,
                           Prefs.COLOR_MODE_NEUTRAL};
-        String[] myLabels = {"Primary", "Main", "Secondary", "Tonal", "Neutral"};
+        String[] myLabels = getResources().getStringArray(R.array.appearance_material_you_labels);
         mMaterialYouSwatches = new ColorSwatch[5];
         LinearLayout myRow = new LinearLayout(this);
         myRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -353,7 +353,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
 
         // Row 2: Static swatches
         int[] stdModes   = {Prefs.COLOR_MODE_WHITE, Prefs.COLOR_MODE_BLACK, Prefs.COLOR_MODE_CUSTOM};
-        String[] stdLabels = {"White", "Dark", "Custom"};
+        String[] stdLabels = getResources().getStringArray(R.array.appearance_color_static_labels);
         int[] stdColors  = {0xFFFFFFFF, 0xFF2D2D2D, mCustomColor};
         mSwatches = new ColorSwatch[3];
         LinearLayout stdRow = new LinearLayout(this);
@@ -375,13 +375,13 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         hexRow.setGravity(Gravity.CENTER_VERTICAL);
         hexRow.setPadding(0, (int)(4*dp), 0, 0);
         TextView hexLabel = new TextView(this);
-        hexLabel.setText("Custom color");
+        hexLabel.setText(R.string.appearance_custom_color);
         hexLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         hexLabel.setTextColor(colOnSurface);
         hexRow.addView(hexLabel, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         mHexInput = new EditText(this);
-        mHexInput.setHint("#RRGGBB");
+        mHexInput.setHint(R.string.appearance_hex_hint);
         mHexInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         mHexInput.setTextColor(colOnSurface);
         mHexInput.setHintTextColor(colOnSurfaceVariant);
@@ -393,7 +393,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         hexRow.addView(mHexInput, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         TextView setBtn = new TextView(this);
-        setBtn.setText("Set");
+        setBtn.setText(R.string.appearance_set);
         setBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         setBtn.setTextColor(colPrimary);
         setBtn.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
@@ -431,7 +431,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
             refreshColorSwatches();
             invalidatePreviews();
         } catch (IllegalArgumentException e) {
-            mHexInput.setError("Invalid color");
+            mHexInput.setError(getString(R.string.appearance_invalid_color));
         }
     }
 
@@ -466,7 +466,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         inner.setPadding((int)(16*dp), (int)(12*dp), (int)(4*dp), (int)(12*dp));
 
         mAlphaValueLabel = new TextView(this);
-        mAlphaValueLabel.setText(mAlpha + "%");
+        mAlphaValueLabel.setText(getString(R.string.appearance_alpha_value, mAlpha));
         mAlphaValueLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         mAlphaValueLabel.setTextColor(colOnSurfaceVariant);
         mAlphaValueLabel.setPadding(0, 0, (int)(12*dp), 0);
@@ -482,7 +482,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         slider.addOnChangeListener((s, value, fromUser) -> {
             if (!fromUser) return;
             mAlpha = (int) value;
-            mAlphaValueLabel.setText(mAlpha + "%");
+            mAlphaValueLabel.setText(getString(R.string.appearance_alpha_value, mAlpha));
             invalidatePreviews();
         });
         // Commit on release only: every setPref is a broadcast round-trip into
@@ -520,7 +520,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding((int)(12*dp), (int)(12*dp), (int)(12*dp), (int)(12*dp));
 
-        String[] names = {"Pill", "Circle", "Droplet", "Star"};
+        String[] names = getResources().getStringArray(R.array.appearance_shape_names);
         int[] shapes = {Prefs.INDICATOR_SHAPE_PILL, Prefs.INDICATOR_SHAPE_CIRCLE,
                 Prefs.INDICATOR_SHAPE_DROPLET, Prefs.INDICATOR_SHAPE_STAR};
         mShapeTiles = new ShapeTile[shapes.length];
@@ -613,7 +613,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
             mLabel = label;
             mShapeId = shapeId;
             setClickable(true);
-            setContentDescription(label + " indicator shape");
+            setContentDescription(getString(R.string.appearance_shape_content_desc, label));
             mLabelPaint.setTextAlign(Paint.Align.CENTER);
             mLabelPaint.setTextSize(12 * getResources().getDisplayMetrics().scaledDensity);
             mLabelPaint.setTypeface(android.graphics.Typeface.create(
@@ -723,14 +723,14 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText("Drop shadow");
+        title.setText(R.string.appearance_drop_shadow);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         title.setTextColor(colOnSurface);
         title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         texts.addView(title, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         TextView desc = new TextView(this);
-        desc.setText("Cast a soft shadow behind the indicator");
+        desc.setText(R.string.appearance_drop_shadow_desc);
         desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         desc.setTextColor(colOnSurfaceVariant);
         texts.addView(desc, new LinearLayout.LayoutParams(
@@ -796,7 +796,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         headerTexts.setOrientation(LinearLayout.VERTICAL);
 
         TextView titleTv = new TextView(this);
-        titleTv.setText("Text color");
+        titleTv.setText(R.string.appearance_text_color);
         titleTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         titleTv.setTextColor(colOnSurface);
         titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
@@ -848,7 +848,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         int[] myBgModes    = {Prefs.COLOR_MODE_ACCENT_LIGHT, Prefs.COLOR_MODE_ACCENT,
                               Prefs.COLOR_MODE_ACCENT_DARK,  Prefs.COLOR_MODE_TERTIARY,
                               Prefs.COLOR_MODE_NEUTRAL};
-        String[] myLabels  = {"Primary", "Main", "Secondary", "Tonal", "Neutral"};
+        String[] myLabels  = getResources().getStringArray(R.array.appearance_material_you_labels);
         mTextMySwatches = new ColorSwatch[5];
         for (int i = 0; i < 5; i++) {
             mTextMySwatches[i] = new ColorSwatch(resolveColorForMode(myBgModes[i]), myLabels[i]);
@@ -865,11 +865,13 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
 
         // Row 2: Static swatches (Auto, White, Black, Custom)
         int autoColor = contrastColor(resolveColorForMode(mColorMode));
+        String[] textStaticLabels =
+                getResources().getStringArray(R.array.appearance_text_color_static_labels);
         mTextSwatches = new ColorSwatch[]{
-            new ColorSwatch(autoColor,        "Auto"),
-            new ColorSwatch(0xFFFFFFFF,       "White"),
-            new ColorSwatch(0xFF2D2D2D,       "Black"),
-            new ColorSwatch(mTextCustomColor, "Custom"),
+            new ColorSwatch(autoColor,        textStaticLabels[0]),
+            new ColorSwatch(0xFFFFFFFF,       textStaticLabels[1]),
+            new ColorSwatch(0xFF2D2D2D,       textStaticLabels[2]),
+            new ColorSwatch(mTextCustomColor, textStaticLabels[3]),
         };
         mTextSwatches[0].setYinYang(true);
         int[] stdTextModes = {Prefs.TEXT_COLOR_MODE_AUTO, Prefs.TEXT_COLOR_MODE_WHITE,
@@ -893,14 +895,14 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         hexRow.setPadding(0, (int)(4*dp), 0, 0);
 
         TextView hexLbl = new TextView(this);
-        hexLbl.setText("Custom color");
+        hexLbl.setText(R.string.appearance_custom_color);
         hexLbl.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         hexLbl.setTextColor(colOnSurface);
         hexRow.addView(hexLbl, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         mTextHexInput = new EditText(this);
-        mTextHexInput.setHint("#RRGGBB");
+        mTextHexInput.setHint(R.string.appearance_hex_hint);
         mTextHexInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         mTextHexInput.setTextColor(colOnSurface);
         mTextHexInput.setHintTextColor(colOnSurfaceVariant);
@@ -913,7 +915,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView setBtn = new TextView(this);
-        setBtn.setText("Set");
+        setBtn.setText(R.string.appearance_set);
         setBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         setBtn.setTextColor(colPrimary);
         setBtn.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
@@ -1017,7 +1019,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
             refreshTextColorSwatches();
             invalidatePreviews();
         } catch (IllegalArgumentException e) {
-            mTextHexInput.setError("Invalid color");
+            mTextHexInput.setError(getString(R.string.appearance_invalid_color));
         }
     }
 
@@ -1039,8 +1041,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
             mTextSwatches[i].setSelected(mTextColorMode == stdModes[i]);
         }
         if (mTextColorSubtitle != null) {
-            String[] allNames = {"Auto", "White", "Black", "Custom",
-                                 "Primary", "Main", "Secondary", "Tonal", "Neutral"};
+            String[] allNames = getResources().getStringArray(R.array.appearance_text_color_mode_names);
             int idx = (mTextColorMode >= 0 && mTextColorMode < allNames.length) ? mTextColorMode : 0;
             mTextColorSubtitle.setText(allNames[idx]);
         }

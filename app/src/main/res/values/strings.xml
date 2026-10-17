@@ -3,4 +3,69 @@
     <string name="app_name">Brightness Slider</string>
     <string name="app_description">Swipe horizontally on the status bar to adjust screen brightness</string>
     <string name="module_description">Adds a horizontal swipe gesture on the status bar to control screen brightness.</string>
+
+    <!-- Manifest component labels -->
+    <string name="activity_indicator_appearance">Indicator appearance</string>
+    <string name="service_auto_brightness">Auto brightness</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Brightness\nSlider</string>
+    <string name="settings_subtitle">Swipe horizontally on the status bar to adjust brightness</string>
+    <string name="settings_footer">Changes take effect immediately — no reboot needed</string>
+    <string name="settings_menu_more">More options</string>
+    <string name="settings_menu_github">GitHub repository</string>
+    <string name="settings_menu_kofi">Support on Ko-fi</string>
+    <string name="settings_url_github" translatable="false">https://github.com/ethanm6/status-bar-brightness-slider</string>
+    <string name="settings_url_kofi" translatable="false">https://ko-fi.com/ethanm6</string>
+
+    <string name="settings_enable_gesture">Enable gesture</string>
+    <string name="settings_enable_gesture_desc">Swipe left to dim, right to brighten</string>
+    <string name="settings_auto_brightness">Auto brightness mode</string>
+    <string name="settings_auto_brightness_desc">Enable system auto-brightness and pause gesture control</string>
+    <string name="settings_keep_gesture_auto">Keep gesture with auto-brightness</string>
+    <string name="settings_keep_gesture_auto_desc">Swipes stay active while auto-brightness is on and nudge its level</string>
+
+    <string name="settings_section_display">Display</string>
+    <string name="settings_show_indicator">Brightness indicator</string>
+    <string name="settings_show_indicator_desc" formatted="false">Shows brightness % while swiping</string>
+    <string name="settings_indicator_appearance">Indicator appearance</string>
+    <string name="settings_indicator_appearance_desc">Shape and color</string>
+    <string name="settings_indicator_y">Indicator vertical position</string>
+    <string name="settings_indicator_y_desc">Distance from the top of the screen</string>
+    <string name="settings_haptic">Vibrate on gesture start</string>
+    <string name="settings_haptic_desc">Brief haptic pulse when the swipe is recognised</string>
+
+    <string name="settings_section_gesture">Gesture</string>
+    <string name="settings_sensitivity">Activation sensitivity</string>
+    <string name="settings_sensitivity_desc">Higher = shorter swipe needed; lower = less likely to fire when pulling the shade</string>
+    <string name="settings_edge_padding">Rounded-corner padding</string>
+    <string name="settings_edge_padding_desc" formatted="false">Insets the range so 0% and 100% are reachable without reaching the curved screen edges</string>
+
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_block_longpress">Block long-press Quick Settings</string>
+    <string name="settings_block_longpress_desc">Prevents holding the status bar from opening Quick Settings</string>
+    <string name="settings_fullscreen_swipe">Fullscreen swipe</string>
+    <string name="settings_fullscreen_swipe_desc">Adjust brightness at the top of the screen in fullscreen apps</string>
+    <string name="settings_reverse">Reverse direction</string>
+    <string name="settings_reverse_desc" formatted="false">0% on the right, 100% on the left</string>
+
+    <string name="settings_brightness_curve">Brightness curve</string>
+    <string name="settings_brightness_curve_reset">Reset</string>
+    <string name="settings_brightness_curve_desc">How strongly the slider favors the dim end — higher gives finer control at low brightness. 1.0 matches the system slider</string>
+
+    <!-- Indicator appearance screen -->
+    <string name="appearance_title">Indicator appearance</string>
+    <string name="appearance_section_shape">Shape</string>
+    <string name="appearance_section_color">Color</string>
+    <string name="appearance_section_opacity">Opacity</string>
+    <string name="appearance_section_effects">Effects</string>
+    <string name="appearance_text_color">Text color</string>
+    <string name="appearance_custom_color">Custom color</string>
+    <string name="appearance_set">Set</string>
+    <string name="appearance_invalid_color">Invalid color</string>
+    <string name="appearance_drop_shadow">Drop shadow</string>
+    <string name="appearance_drop_shadow_desc">Cast a soft shadow behind the indicator</string>
+    <string name="appearance_alpha_value">%1$d%%</string>
+    <string name="appearance_shape_content_desc">%1$s indicator shape</string>
+    <string name="appearance_hex_hint" translatable="false">#RRGGBB</string>
 </resources>

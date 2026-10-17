@@ -9,4 +9,43 @@
         <item>system</item>
         <item>android</item>
     </string-array>
+
+    <!-- Indicator appearance: swatch label groups. Order is aligned by index
+         with the int[] mode arrays in IndicatorAppearanceActivity. -->
+    <string-array name="appearance_material_you_labels">
+        <item>Primary</item>
+        <item>Main</item>
+        <item>Secondary</item>
+        <item>Tonal</item>
+        <item>Neutral</item>
+    </string-array>
+    <string-array name="appearance_color_static_labels">
+        <item>White</item>
+        <item>Dark</item>
+        <item>Custom</item>
+    </string-array>
+    <string-array name="appearance_text_color_static_labels">
+        <item>Auto</item>
+        <item>White</item>
+        <item>Black</item>
+        <item>Custom</item>
+    </string-array>
+    <string-array name="appearance_shape_names">
+        <item>Pill</item>
+        <item>Circle</item>
+        <item>Droplet</item>
+        <item>Star</item>
+    </string-array>
+    <!-- Indexed directly by Prefs.TEXT_COLOR_MODE_* (0..8). -->
+    <string-array name="appearance_text_color_mode_names">
+        <item>Auto</item>
+        <item>White</item>
+        <item>Black</item>
+        <item>Custom</item>
+        <item>Primary</item>
+        <item>Main</item>
+        <item>Secondary</item>
+        <item>Tonal</item>
+        <item>Neutral</item>
+    </string-array>
 </resources>

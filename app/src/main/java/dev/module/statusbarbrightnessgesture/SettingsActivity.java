@@ -95,7 +95,7 @@ public class SettingsActivity extends AppCompatActivity {
         titleRow.setOrientation(LinearLayout.HORIZONTAL);
 
         TextView title = new TextView(this);
-        title.setText("Brightness\nSlider");
+        title.setText(R.string.settings_title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 40);
         title.setTextColor(colOnSurface);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -106,19 +106,19 @@ public class SettingsActivity extends AppCompatActivity {
         ImageButton menuBtn = new ImageButton(this);
         menuBtn.setImageResource(R.drawable.ic_more_vert);
         menuBtn.setColorFilter(colOnSurfaceVariant);
-        menuBtn.setContentDescription("More options");
+        menuBtn.setContentDescription(getString(R.string.settings_menu_more));
         TypedValue ripple = new TypedValue();
         getTheme().resolveAttribute(
                 android.R.attr.selectableItemBackgroundBorderless, ripple, true);
         menuBtn.setBackgroundResource(ripple.resourceId);
         menuBtn.setOnClickListener(v -> {
             PopupMenu menu = new PopupMenu(this, v);
-            menu.getMenu().add(0, 1, 0, "GitHub repository");
-            menu.getMenu().add(0, 2, 1, "Support on Ko-fi");
+            menu.getMenu().add(0, 1, 0, getString(R.string.settings_menu_github));
+            menu.getMenu().add(0, 2, 1, getString(R.string.settings_menu_kofi));
             menu.setOnMenuItemClickListener(item -> {
                 String url = item.getItemId() == 1
-                        ? "https://github.com/ethanm6/status-bar-brightness-slider"
-                        : "https://ko-fi.com/ethanm6";
+                        ? getString(R.string.settings_url_github)
+                        : getString(R.string.settings_url_kofi);
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                 return true;
             });
@@ -130,7 +130,7 @@ public class SettingsActivity extends AppCompatActivity {
         hero.addView(titleRow, matchWidth());
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Swipe horizontally on the status bar to adjust brightness");
+        subtitle.setText(R.string.settings_subtitle);
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         subtitle.setTextColor(colOnSurfaceVariant);
         subtitle.setPadding(0, (int)(10*dp), 0, 0);
@@ -145,23 +145,23 @@ public class SettingsActivity extends AppCompatActivity {
 
         // Primary toggle — standalone card
         buildCard(content, dp, card -> {
-            mGestureSwitch = addSwitch(card, dp, "Enable gesture",
-                    "Swipe left to dim, right to brighten",
+            mGestureSwitch = addSwitch(card, dp, getString(R.string.settings_enable_gesture),
+                    getString(R.string.settings_enable_gesture_desc),
                     Prefs.KEY_GESTURE_ENABLED, Prefs.DEFAULT_GESTURE_ENABLED,
                     enabled -> {
                         if (enabled && !keepGestureOnAuto()) {
                             Prefs.setPref(this, Prefs.KEY_AUTO_BRIGHTNESS, 0);
                             if (mAutoSwitch != null) mAutoSwitch.setChecked(false);
                         }
-                    });            mAutoSwitch = addSwitch(card, dp, "Auto brightness mode",
-                    "Enable system auto-brightness and pause gesture control",
+                    });            mAutoSwitch = addSwitch(card, dp, getString(R.string.settings_auto_brightness),
+                    getString(R.string.settings_auto_brightness_desc),
                     Prefs.KEY_AUTO_BRIGHTNESS, Prefs.DEFAULT_AUTO_BRIGHTNESS,
                     enabled -> {
                         if (keepGestureOnAuto()) return;
                         Prefs.setPref(this, Prefs.KEY_GESTURE_ENABLED, enabled ? 0 : 1);
                         if (mGestureSwitch != null) mGestureSwitch.setChecked(!enabled);
-                    });            addSwitch(card, dp, "Keep gesture with auto-brightness",
-                    "Swipes stay active while auto-brightness is on and nudge its level",
+                    });            addSwitch(card, dp, getString(R.string.settings_keep_gesture_auto),
+                    getString(R.string.settings_keep_gesture_auto_desc),
                     Prefs.KEY_KEEP_GESTURE_ON_AUTO, Prefs.DEFAULT_KEEP_GESTURE_ON_AUTO,
                     enabled -> {
                         // Re-apply the invariant for the current auto state: keeping the
@@ -179,52 +179,52 @@ public class SettingsActivity extends AppCompatActivity {
                 Prefs.KEY_OVERLAY_ENABLED, Prefs.DEFAULT_OVERLAY_ENABLED) == 1;
         final View[] appearanceRow = {null};
         final View[] posSlider = {null};
-        addSectionLabel(content, dp, "Display");
+        addSectionLabel(content, dp, getString(R.string.settings_section_display));
         buildCard(content, dp, card -> {
-            addSwitch(card, dp, "Brightness indicator",
-                    "Shows brightness % while swiping",
+            addSwitch(card, dp, getString(R.string.settings_show_indicator),
+                    getString(R.string.settings_show_indicator_desc),
                     Prefs.KEY_OVERLAY_ENABLED, Prefs.DEFAULT_OVERLAY_ENABLED,
                     enabled -> {
                         setNavRowEnabled(appearanceRow[0], enabled);
                         setNavRowEnabled(posSlider[0], enabled);
-                    });            appearanceRow[0] = addNavRow(card, dp, "Indicator appearance", "Shape and color",
-                    () -> startActivity(new Intent(this, IndicatorAppearanceActivity.class)));            posSlider[0] = addSlider(card, dp, "Indicator vertical position",
-                    "Distance from the top of the screen",
+                    });            appearanceRow[0] = addNavRow(card, dp, getString(R.string.settings_indicator_appearance), getString(R.string.settings_indicator_appearance_desc),
+                    () -> startActivity(new Intent(this, IndicatorAppearanceActivity.class)));            posSlider[0] = addSlider(card, dp, getString(R.string.settings_indicator_y),
+                    getString(R.string.settings_indicator_y_desc),
                     Prefs.KEY_INDICATOR_Y_POSITION, Prefs.DEFAULT_INDICATOR_Y_POSITION,
-                    0, Prefs.INDICATOR_Y_POSITION_MAX, "%", 1, false);            addSwitch(card, dp, "Vibrate on gesture start",
-                    "Brief haptic pulse when the swipe is recognised",
+                    0, Prefs.INDICATOR_Y_POSITION_MAX, "%", 1, false);            addSwitch(card, dp, getString(R.string.settings_haptic),
+                    getString(R.string.settings_haptic_desc),
                     Prefs.KEY_HAPTIC_FEEDBACK, Prefs.DEFAULT_HAPTIC_FEEDBACK);
         });
         setNavRowEnabled(appearanceRow[0], overlayOn);
         setNavRowEnabled(posSlider[0], overlayOn);
 
         // Gesture
-        addSectionLabel(content, dp, "Gesture");
+        addSectionLabel(content, dp, getString(R.string.settings_section_gesture));
         buildCard(content, dp, card -> {
-            addSlider(card, dp, "Activation sensitivity",
-                    "Higher = shorter swipe needed; lower = less likely to fire when pulling the shade",
+            addSlider(card, dp, getString(R.string.settings_sensitivity),
+                    getString(R.string.settings_sensitivity_desc),
                     Prefs.KEY_SENSITIVITY, Prefs.DEFAULT_SENSITIVITY,
-                    Prefs.SENSITIVITY_MIN, Prefs.SENSITIVITY_MAX, "", 1);            addSlider(card, dp, "Rounded-corner padding",
-                    "Insets the range so 0% and 100% are reachable without reaching the curved screen edges",
+                    Prefs.SENSITIVITY_MIN, Prefs.SENSITIVITY_MAX, "", 1);            addSlider(card, dp, getString(R.string.settings_edge_padding),
+                    getString(R.string.settings_edge_padding_desc),
                     Prefs.KEY_EDGE_PADDING_DP, Prefs.DEFAULT_EDGE_PADDING_DP,
                     0, Prefs.EDGE_PADDING_MAX_DP, " dp", 0);
         });
 
         // Advanced
-        addSectionLabel(content, dp, "Advanced");
+        addSectionLabel(content, dp, getString(R.string.settings_section_advanced));
         buildCard(content, dp, card -> {
-            addSwitch(card, dp, "Block long-press Quick Settings",
-                    "Prevents holding the status bar from opening Quick Settings",
-                    Prefs.KEY_BLOCK_LONGPRESS_QS, Prefs.DEFAULT_BLOCK_LONGPRESS_QS);            addSwitch(card, dp, "Fullscreen swipe",
-                    "Adjust brightness at the top of the screen in fullscreen apps",
-                    Prefs.KEY_FULLSCREEN_SWIPE, Prefs.DEFAULT_FULLSCREEN_SWIPE);            addSwitch(card, dp, "Reverse direction",
-                    "0% on the right, 100% on the left",
+            addSwitch(card, dp, getString(R.string.settings_block_longpress),
+                    getString(R.string.settings_block_longpress_desc),
+                    Prefs.KEY_BLOCK_LONGPRESS_QS, Prefs.DEFAULT_BLOCK_LONGPRESS_QS);            addSwitch(card, dp, getString(R.string.settings_fullscreen_swipe),
+                    getString(R.string.settings_fullscreen_swipe_desc),
+                    Prefs.KEY_FULLSCREEN_SWIPE, Prefs.DEFAULT_FULLSCREEN_SWIPE);            addSwitch(card, dp, getString(R.string.settings_reverse),
+                    getString(R.string.settings_reverse_desc),
                     Prefs.KEY_REVERSE_SLIDER, Prefs.DEFAULT_REVERSE_SLIDER);            addCurveSlider(card, dp);
         });
 
         // Footer
         TextView footer = new TextView(this);
-        footer.setText("Changes take effect immediately — no reboot needed");
+        footer.setText(R.string.settings_footer);
         footer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         footer.setTextColor(colOnSurfaceVariant);
         footer.setGravity(Gravity.CENTER);
@@ -465,7 +465,7 @@ public class SettingsActivity extends AppCompatActivity {
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView tv = new TextView(this);
-        tv.setText("Brightness curve");
+        tv.setText(R.string.settings_brightness_curve);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         tv.setTextColor(colOnSurface);
         tv.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -483,7 +483,7 @@ public class SettingsActivity extends AppCompatActivity {
         com.google.android.material.button.MaterialButton reset =
                 new com.google.android.material.button.MaterialButton(this, null,
                         com.google.android.material.R.attr.borderlessButtonStyle);
-        reset.setText("Reset");
+        reset.setText(R.string.settings_brightness_curve_reset);
         reset.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         reset.setMinWidth(0);
         reset.setMinimumWidth(0);
@@ -509,8 +509,7 @@ public class SettingsActivity extends AppCompatActivity {
         col.addView(titleRow, matchWidth());
 
         TextView dv = new TextView(this);
-        dv.setText("How strongly the slider favors the dim end — higher gives finer "
-                + "control at low brightness. 1.0 matches the system slider");
+        dv.setText(R.string.settings_brightness_curve_desc);
         dv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         dv.setTextColor(colOnSurfaceVariant);
         dv.setPadding(0, (int)(3*dp), 0, (int)(6*dp));
