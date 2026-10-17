@@ -87,6 +87,26 @@ public final class Prefs {
     public static final int DEFAULT_MAIN_LIGHT                 = 0xFF984061;
     public static final int DEFAULT_MAIN_DARK                  = 0xFF920026;
 
+    // Keys the app is allowed to send via ACTION_SET_PREF. The hook (in SystemUI,
+    // which holds WRITE_SECURE_SETTINGS) writes these on the app's behalf. Any other
+    // key in a SET_PREF broadcast is rejected, so an arbitrary app can't use the
+    // exported receiver to write Settings.Secure it isn't meant to touch.
+    // KEY_SAVED_BRIGHTNESS is intentionally absent — only the hook writes it directly.
+    public static final java.util.Set<String> WRITABLE_KEYS =
+            java.util.Collections.unmodifiableSet(new java.util.HashSet<>(java.util.Arrays.asList(
+                    KEY_GESTURE_ENABLED, KEY_OVERLAY_ENABLED, KEY_BLOCK_LONGPRESS_QS,
+                    KEY_FULLSCREEN_SWIPE, KEY_HAPTIC_FEEDBACK, KEY_SENSITIVITY,
+                    KEY_EDGE_PADDING_DP, KEY_AUTO_BRIGHTNESS, KEY_KEEP_GESTURE_ON_AUTO,
+                    KEY_INDICATOR_Y_POSITION, KEY_BRIGHTNESS_CURVE, KEY_INDICATOR_SHAPE,
+                    KEY_INDICATOR_COLOR_MODE, KEY_INDICATOR_CUSTOM_COLOR, KEY_INDICATOR_ALPHA,
+                    KEY_INDICATOR_TEXT_COLOR_MODE, KEY_INDICATOR_TEXT_CUSTOM_COLOR,
+                    KEY_INDICATOR_SHADOW, KEY_REVERSE_SLIDER, KEY_MAIN_LIGHT, KEY_MAIN_DARK)));
+
+    /** True if {@code key} is one of the prefs the app may set remotely. */
+    public static boolean isWritableKey(String key) {
+        return key != null && WRITABLE_KEYS.contains(key);
+    }
+
     public static final int SENSITIVITY_MIN    = 1;
     public static final int SENSITIVITY_MAX    = 10;
     public static final int EDGE_PADDING_MAX_DP = 64;

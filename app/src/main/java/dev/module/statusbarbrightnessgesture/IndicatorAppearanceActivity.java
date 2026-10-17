@@ -92,9 +92,8 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         resolveColours();
         dp = getResources().getDisplayMetrics().density;
-        // "Main" = the app slider's inactive tick colour (the right-side dots). Read it
-        // exactly and report it so the indicator matches (the hook resolves M3 differently).
-        // "Main" = the app slider's inactive track colour = colorSecondaryContainer.
+        // "Main" = the app slider's inactive track colour = colorSecondaryContainer. Read it
+        // and report it so the indicator matches (the hook resolves M3 differently).
         mMainColor = resolveAttr(com.google.android.material.R.attr.colorSecondaryContainer, 0xFF920026);
         boolean nightNow = (getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;

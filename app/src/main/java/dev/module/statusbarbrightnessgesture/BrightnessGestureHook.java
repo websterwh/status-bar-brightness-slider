@@ -494,6 +494,9 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private void registerPrefsReceiver(Context context) {
         if (mReceiverRegistered) return;
         mReceiverRegistered = true;
+        // Populate the context at the same moment the receiver goes live, so the
+        // receive path never depends on initDisplayResources() having already run.
+        if (mContext == null) mContext = context;
 
         // Read persisted state from Settings.Secure on boot — available immediately,
         // no app process needed, survives reboots.
@@ -511,11 +514,17 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
                 // The app has no WRITE_SECURE_SETTINGS grant, so it asks us to persist
                 // each change; we hold the permission (running in SystemUI).
+                if (mContext == null) return;
+
                 String changedKey = null;
                 if (Prefs.ACTION_SET_PREF.equals(action)) {
                     changedKey = intent.getStringExtra(Prefs.EXTRA_KEY);
                     int value = intent.getIntExtra(Prefs.EXTRA_VALUE, 0);
                     if (changedKey != null) {
+                        if (!Prefs.isWritableKey(changedKey)) {
+                            XposedBridge.log(TAG + ": rejected non-pref key from SET_PREF: " + changedKey);
+                            return;
+                        }
                         try {
                             Settings.Secure.putInt(mContext.getContentResolver(), changedKey, value);
                         } catch (Throwable t) {
@@ -526,30 +535,34 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                     return;
                 }
 
-                // Reload everything from Secure (the source of truth we just updated) and apply.
-                boolean prevGesture = mGestureEnabled;
-                int prevColorMode = mIndicatorColorMode, prevCustom = mIndicatorCustomColor;
-                int prevTextMode = mTextColorMode, prevTextCustom = mTextCustomColor;
-                boolean prevShadow = mIndicatorShadow;
-                int prevShape = mIndicatorShape;
-                int prevMainLight = mMainLight, prevMainDark = mMainDark;
+                try {
+                    // Reload everything from Secure (the source of truth we just updated) and apply.
+                    boolean prevGesture = mGestureEnabled;
+                    int prevColorMode = mIndicatorColorMode, prevCustom = mIndicatorCustomColor;
+                    int prevTextMode = mTextColorMode, prevTextCustom = mTextCustomColor;
+                    boolean prevShadow = mIndicatorShadow;
+                    int prevShape = mIndicatorShape;
+                    int prevMainLight = mMainLight, prevMainDark = mMainDark;
 
-                loadPrefsFromSecure(mContext);
-                applyAutoBrightness();
+                    loadPrefsFromSecure(mContext);
+                    applyAutoBrightness();
 
-                boolean needsReinit = prevColorMode != mIndicatorColorMode
-                        || prevCustom != mIndicatorCustomColor
-                        || prevTextMode != mTextColorMode
-                        || prevTextCustom != mTextCustomColor
-                        || prevShadow != mIndicatorShadow
-                        || prevShape != mIndicatorShape
-                        || prevMainLight != mMainLight
-                        || prevMainDark != mMainDark;
+                    boolean needsReinit = prevColorMode != mIndicatorColorMode
+                            || prevCustom != mIndicatorCustomColor
+                            || prevTextMode != mTextColorMode
+                            || prevTextCustom != mTextCustomColor
+                            || prevShadow != mIndicatorShadow
+                            || prevShape != mIndicatorShape
+                            || prevMainLight != mMainLight
+                            || prevMainDark != mMainDark;
 
-                updateFullscreenTouch();
-                if (needsReinit) reinitIndicator();
-                if (prevGesture && !mGestureEnabled && mIndicatorAttached) {
-                    hideIndicator();
+                    updateFullscreenTouch();
+                    if (needsReinit) reinitIndicator();
+                    if (prevGesture && !mGestureEnabled && mIndicatorAttached) {
+                        hideIndicator();
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(TAG + ": prefs apply failed: " + t);
                 }
             }
         };
