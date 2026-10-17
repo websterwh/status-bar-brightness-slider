@@ -4,6 +4,12 @@ app/build/
 *.apk
 *.aab
 
+# Signing
+release.keystore
+*.jks
+*.keystore
+keystore.properties
+
 # Android Studio
 .idea/
 *.iml
