@@ -22,6 +22,12 @@
 # its fields (read by name in readBrightnessRange()).
 -keep class android.hardware.display.BrightnessInfo { *; }
 
-# Compile-only stubs shadowed by the boot classpath at runtime.
+# Compile-only stubs shadowed by the boot classpath at runtime. R8 must NOT
+# rename them: the cast and anonymous subclass in initGestureMonitor() run
+# against the real framework classes, so an obfuscated stub name makes the
+# checkcast fail with ClassCastException and kills the fullscreen gesture.
+# (-keep also suppresses the missing-member warnings for these stubs.)
+-keep class android.view.InputChannel { *; }
+-keep class android.view.InputEventReceiver { *; }
 -dontwarn android.view.InputChannel
 -dontwarn android.view.InputEventReceiver
