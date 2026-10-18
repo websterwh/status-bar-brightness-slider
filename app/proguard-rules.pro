@@ -1,20 +1,27 @@
 # ============================================================
-# LSPosed module ProGuard rules
+# LSPosed module ProGuard/R8 rules
 # ============================================================
 #
-# IMPORTANT: minifyEnabled is set to false in build.gradle.kts,
-# so ProGuard/R8 does not run on release builds. These rules are
-# here as a safety net in case minification is ever enabled.
-#
-# The hook class is referenced by name in assets/xposed_init.
-# LSPosed finds it via Class.forName() at runtime, so its name
-# must never be obfuscated or removed.
+# minifyEnabled + shrinkResources are enabled for release builds, so R8
+# runs on the APK. All of the hook's reflective lookups target framework
+# classes by string name (unaffected by R8); the rules below keep the
+# module's own entry class and the compileOnly Xposed API references valid.
 
+# The hook class is referenced by name in assets/xposed_init. LSPosed finds
+# it via Class.forName() at runtime, so its name must never be obfuscated or
+# removed. Keep the whole module package for the same reason (activities and
+# the QS tile service are instantiated by the framework by name).
 -keep class dev.module.statusbarbrightnessgesture.** { *; }
 
-# Keep all Xposed API classes (they are compileOnly and not in the APK,
-# but keep the references intact so the DEX bytecode is valid).
+# Xposed API classes are compileOnly (not in the APK); keep the references
+# intact so the DEX bytecode stays valid and suppress missing-class warnings.
 -keep class de.robv.android.xposed.** { *; }
+-dontwarn de.robv.android.xposed.**
 
-# BrightnessInfo is accessed via Display.getBrightnessInfo() — keep its fields.
+# BrightnessInfo is accessed via Display.getBrightnessInfo() reflection — keep
+# its fields (read by name in readBrightnessRange()).
 -keep class android.hardware.display.BrightnessInfo { *; }
+
+# Compile-only stubs shadowed by the boot classpath at runtime.
+-dontwarn android.view.InputChannel
+-dontwarn android.view.InputEventReceiver

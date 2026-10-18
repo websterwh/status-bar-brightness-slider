@@ -31,7 +31,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (signingConfigs.getByName("release").storeFile?.exists() == true) {
                 signingConfigs.getByName("release")
             } else {
