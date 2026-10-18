@@ -13,8 +13,8 @@ android {
         applicationId = "dev.module.statusbarbrightnessgesture"
         minSdk = 33
         targetSdk = 35
-        versionCode = 26
-        versionName = "1.1.1"
+        versionCode = 27
+        versionName = "1.1.2"
     }
     signingConfigs {
         create("release") {
