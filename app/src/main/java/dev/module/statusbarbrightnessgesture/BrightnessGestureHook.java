@@ -365,12 +365,12 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                                 && downTime == mSysTrackDownTime) {
                             float dx = Math.abs(ev.getX() - mSysDownX);
                             float dy = Math.abs(ev.getY() - mSysDownY);
-                            if (dx > mSysEarlySlopPx && dx > dy * mSysRatio) {
+                            if (GestureMath.isHorizontalDrag(dx, dy, mSysEarlySlopPx, mSysRatio)) {
                                 // The brightness gesture claims this stream; hide the
                                 // rest of it from the swipe-from-top detector.
                                 mSysBlindDownTime = mSysTrackDownTime;
                                 mSysTrackDownTime = -1;
-                            } else if (dy > mSysSlopPx && dy > dx) {
+                            } else if (GestureMath.isVerticalDrag(dy, dx, mSysSlopPx)) {
                                 // Clearly vertical — a deliberate bar reveal. Stop
                                 // watching; the system handles it natively.
                                 mSysTrackDownTime = -1;
@@ -1453,10 +1453,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             float absDX = Math.abs(x - mDownX);
             float absDY = Math.abs(ev.getY() - mDownY);
             // Clearly vertical → this is an intentional QS swipe; let the shade open.
-            if (mSuppressShadeExpand && absDY > mGestureSlopPx && absDY > absDX) {
+            if (mSuppressShadeExpand && GestureMath.isVerticalDrag(absDY, absDX, mGestureSlopPx)) {
                 mSuppressShadeExpand = false;
             }
-            if (absDX <= mGestureSlopPx || absDX <= absDY * mHorizontalRatio) {
+            if (!GestureMath.isHorizontalDrag(absDX, absDY, mGestureSlopPx, mHorizontalRatio)) {
                 return false;
             }
             mGestureActive = true;
@@ -1688,7 +1688,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         if (!mTouchStartedInStatusBar || mScreenWidth == 0) return false;
         float dx = Math.abs(me.getX() - mDownX);
         float dy = Math.abs(me.getY() - mDownY);
-        return dx > mEarlyClaimSlopPx && dx > dy * mHorizontalRatio;
+        return GestureMath.isHorizontalDrag(dx, dy, mEarlyClaimSlopPx, mHorizontalRatio);
     }
 
     private void initGestureMonitor() {
