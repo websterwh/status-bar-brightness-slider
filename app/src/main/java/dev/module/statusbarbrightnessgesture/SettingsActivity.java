@@ -20,7 +20,6 @@
 package dev.module.statusbarbrightnessgesture;
 
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -253,7 +252,8 @@ public class SettingsActivity extends AppCompatActivity {
         // with a small gap between rows — large radii on the group's outer corners,
         // small radii between neighbours — instead of one card with divider lines.
         float big = 28 * dp, small = 6 * dp;
-        int rippleColor = resolveColor(android.R.attr.colorControlHighlight, 0x1F888888);
+        int rippleColor = ThemeColors.resolveAttr(
+                this, android.R.attr.colorControlHighlight, 0x1F888888);
         int n = inner.getChildCount();
         for (int i = 0; i < n; i++) {
             View child = inner.getChildAt(i);
@@ -597,41 +597,12 @@ public class SettingsActivity extends AppCompatActivity {
     // ── Colours ───────────────────────────────────────────────────────────────
 
     private void resolveColours() {
-        boolean night = (getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-
-        colBackground       = resolveColor(android.R.attr.colorBackground,
-                                night ? 0xFF141218 : 0xFFFEF7FF);
-        colSurfaceContainer = resolveColor(com.google.android.material.R.attr.colorSurfaceContainerHigh,
-                                night ? 0xFF2B2930 : 0xFFECE6F0);
-        colOnSurface        = resolveColor(android.R.attr.textColorPrimary,
-                                night ? 0xFFE6E1E5 : 0xFF1D1B20);
-        // System secondary text color, so descriptions follow the system text
-        // palette; falls back to M3 onSurfaceVariant if the attr is missing.
-        colOnSurfaceVariant = resolveColor(android.R.attr.textColorSecondary,
-                                resolveColor(com.google.android.material.R.attr.colorOnSurfaceVariant,
-                                        night ? 0xFFCAC4D0 : 0xFF49454F));
-        colPrimary          = resolveColor(android.R.attr.colorPrimary,
-                                night ? 0xFFD0BCFF : 0xFF6650A4);
-    }
-
-    private int resolveColor(int attr, int fallback) {
-        TypedValue tv = new TypedValue();
-        if (!getTheme().resolveAttribute(attr, tv, true)) return fallback;
-        if (tv.type >= TypedValue.TYPE_FIRST_COLOR_INT
-                && tv.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-            return tv.data;
-        }
-        // Text-color attrs (textColorPrimary/Secondary) resolve to ColorStateList
-        // resources, not raw color ints — without this branch they silently fell
-        // back to the hardcoded defaults instead of the system text palette.
-        if (tv.resourceId != 0) {
-            try {
-                android.content.res.ColorStateList csl = getColorStateList(tv.resourceId);
-                if (csl != null) return csl.getDefaultColor();
-            } catch (Throwable ignored) {}
-        }
-        return fallback;
+        ThemeColors c = ThemeColors.resolve(this);
+        colBackground       = c.background;
+        colSurfaceContainer = c.surfaceContainer;
+        colOnSurface        = c.onSurface;
+        colOnSurfaceVariant = c.onSurfaceVariant;
+        colPrimary          = c.primary;
     }
 
     // ── Nav row ───────────────────────────────────────────────────────────────

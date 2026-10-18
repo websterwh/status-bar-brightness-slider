@@ -19,7 +19,6 @@
  */
 package dev.module.statusbarbrightnessgesture;
 
-import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -94,10 +93,10 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         dp = getResources().getDisplayMetrics().density;
         // "Main" = the app slider's inactive track colour = colorSecondaryContainer. Read it
         // and report it so the indicator matches (the hook resolves M3 differently).
-        mMainColor = resolveAttr(com.google.android.material.R.attr.colorSecondaryContainer, 0xFF920026);
-        boolean nightNow = (getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        Prefs.setPref(this, nightNow ? Prefs.KEY_MAIN_DARK : Prefs.KEY_MAIN_LIGHT, mMainColor);
+        mMainColor = ThemeColors.resolveAttr(
+                this, com.google.android.material.R.attr.colorSecondaryContainer, 0xFF920026);
+        Prefs.setPref(this, ThemeColors.isNight(this)
+                ? Prefs.KEY_MAIN_DARK : Prefs.KEY_MAIN_LIGHT, mMainColor);
 
         mColorMode   = Settings.Secure.getInt(getContentResolver(),
                 Prefs.KEY_INDICATOR_COLOR_MODE,   Prefs.DEFAULT_INDICATOR_COLOR_MODE);
@@ -602,10 +601,12 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
 
         private final int colTileBg = androidx.core.graphics.ColorUtils.blendARGB(
                 colSurfaceContainer, colOnSurface, 0.06f);
-        private final int colTileSel = resolveAttr(
+        private final int colTileSel = ThemeColors.resolveAttr(
+                IndicatorAppearanceActivity.this,
                 com.google.android.material.R.attr.colorSecondaryContainer,
                 androidx.core.graphics.ColorUtils.blendARGB(colSurfaceContainer, colPrimary, 0.25f));
-        private final int colOnTileSel = resolveAttr(
+        private final int colOnTileSel = ThemeColors.resolveAttr(
+                IndicatorAppearanceActivity.this,
                 com.google.android.material.R.attr.colorOnSecondaryContainer, colOnSurface);
 
         ShapeTile(String label, int shapeId) {
@@ -1054,9 +1055,7 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         if (mode == Prefs.COLOR_MODE_ACCENT) {               // "Main" — slider inactive tick colour
             return mMainColor | 0xFF000000;
         } else if (mode == Prefs.COLOR_MODE_ACCENT_LIGHT) {  // "Primary" — matches the indicator exactly
-            boolean night = (getResources().getConfiguration().uiMode
-                    & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-            return getColor(night ? android.R.color.system_neutral1_800
+            return getColor(ThemeColors.isNight(this) ? android.R.color.system_neutral1_800
                     : android.R.color.system_neutral1_100) | 0xFF000000;
         } else if (mode == Prefs.COLOR_MODE_ACCENT_DARK) {  // "Secondary" — app secondary role
             return colSecondary | 0xFF000000;
@@ -1320,41 +1319,12 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
     // ── Theme colors ──────────────────────────────────────────────────────────
 
     private void resolveColours() {
-        boolean night = (getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        colBackground       = resolveAttr(android.R.attr.colorBackground,
-                                night ? 0xFF141218 : 0xFFFEF7FF);
-        colSurfaceContainer = resolveAttr(com.google.android.material.R.attr.colorSurfaceContainerHigh,
-                                night ? 0xFF2B2930 : 0xFFECE6F0);
-        colOnSurface        = resolveAttr(android.R.attr.textColorPrimary,
-                                night ? 0xFFE6E1E5 : 0xFF1D1B20);
-        // System secondary text color, so descriptions follow the system text
-        // palette; falls back to M3 onSurfaceVariant if the attr is missing.
-        colOnSurfaceVariant = resolveAttr(android.R.attr.textColorSecondary,
-                                resolveAttr(com.google.android.material.R.attr.colorOnSurfaceVariant,
-                                        night ? 0xFFCAC4D0 : 0xFF49454F));
-        colPrimary          = resolveAttr(android.R.attr.colorPrimary,
-                                night ? 0xFFD0BCFF : 0xFF6650A4);
-        colSecondary        = resolveAttr(com.google.android.material.R.attr.colorSecondary,
-                                night ? 0xFFCCC2DC : 0xFF625B71);
-    }
-
-    private int resolveAttr(int attr, int fallback) {
-        TypedValue tv = new TypedValue();
-        if (!getTheme().resolveAttribute(attr, tv, true)) return fallback;
-        if (tv.type >= TypedValue.TYPE_FIRST_COLOR_INT
-                && tv.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-            return tv.data;
-        }
-        // Text-color attrs (textColorPrimary/Secondary) resolve to ColorStateList
-        // resources, not raw color ints — without this branch they silently fell
-        // back to the hardcoded defaults instead of the system text palette.
-        if (tv.resourceId != 0) {
-            try {
-                android.content.res.ColorStateList csl = getColorStateList(tv.resourceId);
-                if (csl != null) return csl.getDefaultColor();
-            } catch (Throwable ignored) {}
-        }
-        return fallback;
+        ThemeColors c = ThemeColors.resolve(this);
+        colBackground       = c.background;
+        colSurfaceContainer = c.surfaceContainer;
+        colOnSurface        = c.onSurface;
+        colOnSurfaceVariant = c.onSurfaceVariant;
+        colPrimary          = c.primary;
+        colSecondary        = c.secondary;
     }
 }
