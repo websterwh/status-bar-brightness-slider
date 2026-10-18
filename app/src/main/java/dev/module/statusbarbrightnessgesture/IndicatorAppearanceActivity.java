@@ -40,6 +40,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -137,8 +138,8 @@ public class IndicatorAppearanceActivity extends AppCompatActivity {
         navCircle.setShape(GradientDrawable.OVAL);
         navCircle.setColor(colSurfaceContainer);
         navCircle.setSize(navBtnSize, navBtnSize);
-        android.graphics.drawable.Drawable navArrow =
-                getDrawable(androidx.appcompat.R.drawable.abc_ic_ab_back_material).mutate();
+        android.graphics.drawable.Drawable navArrow = AppCompatResources
+                .getDrawable(this, androidx.appcompat.R.drawable.abc_ic_ab_back_material).mutate();
         navArrow.setTint(colOnSurface);
         LayerDrawable navIcon = new LayerDrawable(
                 new android.graphics.drawable.Drawable[]{navCircle, navArrow});

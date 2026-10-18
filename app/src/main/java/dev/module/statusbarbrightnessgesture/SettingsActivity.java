@@ -412,7 +412,7 @@ public class SettingsActivity extends AppCompatActivity {
                 Settings.Secure.getInt(getContentResolver(), key, defaultVal)));
 
         TextView valueLabel = new TextView(this);
-        valueLabel.setText(current + unit);
+        valueLabel.setText(getString(R.string.settings_value_format, current, unit));
         valueLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         valueLabel.setTextColor(colOnSurfaceVariant);
         valueLabel.setTypeface(Typeface.DEFAULT_BOLD);
@@ -434,9 +434,9 @@ public class SettingsActivity extends AppCompatActivity {
         slider.setValue(current);
         slider.setStepSize(stepSize);
         slider.setTickVisible(showTicks);
-        slider.setLabelFormatter(v -> (int) v + unit);
+        slider.setLabelFormatter(v -> getString(R.string.settings_value_format, (int) v, unit));
         slider.addOnChangeListener((s, value, fromUser) -> {
-            if (fromUser) valueLabel.setText((int) value + unit);
+            if (fromUser) valueLabel.setText(getString(R.string.settings_value_format, (int) value, unit));
         });
         slider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
             @Override public void onStartTrackingTouch(@NonNull Slider s) {}

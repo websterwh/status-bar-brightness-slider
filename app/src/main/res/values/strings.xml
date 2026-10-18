@@ -49,6 +49,7 @@
     <string name="settings_reverse">Reverse direction</string>
     <string name="settings_reverse_desc" formatted="false">0% on the right, 100% on the left</string>
 
+    <string name="settings_value_format">%1$d%2$s</string>
     <string name="settings_brightness_curve">Brightness curve</string>
     <string name="settings_brightness_curve_reset">Reset</string>
     <string name="settings_brightness_curve_desc">How strongly the slider favors the dim end — higher gives finer control at low brightness. 1.0 matches the system slider</string>

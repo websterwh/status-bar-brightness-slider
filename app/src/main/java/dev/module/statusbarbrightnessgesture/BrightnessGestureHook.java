@@ -19,6 +19,7 @@
  */
 package dev.module.statusbarbrightnessgesture;
 
+import android.annotation.SuppressLint;
 import android.animation.ValueAnimator;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -66,6 +67,9 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  *     guaranteed safe timing, no race condition.
  *   - Activities nudge a full reload via ACTION_PREFS_CHANGED on onResume().
  */
+// Reflection into hidden framework/SystemUI APIs is the entire point of this
+// module — lint's private/blocked-API warnings are inherent, not defects.
+@SuppressLint({"PrivateApi", "BlockedPrivateApi"})
 @SuppressWarnings({"JavaReflectionMemberAccess", "ConstantConditions"})
 public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
@@ -907,6 +911,9 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         }
     }
 
+    // "100%" is a locale-invariant measurement placeholder (the widest label);
+    // the hook runs inside SystemUI and cannot resolve the module's resources.
+    @SuppressLint("SetTextI18n")
     private void initIndicatorPill(Context context, int accent, int textCol, float d) {
         TextView tv = new TextView(context);
         tv.setTextColor(textCol);
@@ -1502,6 +1509,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         mMainHandler.postDelayed(this::collapseShadeIfOpen, delay);
     }
 
+    @SuppressLint("WrongConstant")   // STATUS_BAR_SERVICE is a hidden system constant
     private void collapseShadeIfOpen() {
         try {
             Context ctx = mOverlayContext != null ? mOverlayContext : mContext;
