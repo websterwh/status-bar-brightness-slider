@@ -120,6 +120,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private float mDensity = 1f;
     private float mBaseSlopPx = 48f;
     private float mGestureSlopPx = 48f;
+    // Pilfer threshold for the fullscreen gesture monitor. Much smaller than
+    // mGestureSlopPx: it fires at ~touch slop so the app's own gesture detector is
+    // cancelled before it can act on the same stream (see mMonitorClaimed).
+    private float mEarlyClaimSlopPx = 48f;
     private volatile float mHorizontalRatio = 2.0f;
     private float mEdgePaddingPx = 0f;
     private float mBrightnessMin = -1f;
@@ -215,6 +219,11 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private volatile boolean mCachedSbHidden = false;
     private Object mInputMonitor;                      // android.view.InputMonitor (reflection)
     private android.view.InputEventReceiver mGestureReceiver;
+    // True once the current fullscreen stream has been pilfered (stolen from the
+    // app). Pilfering happens early — at mEarlyClaimSlopPx, before the app's own
+    // gesture detector fires — so a brightness swipe can't trigger the app's
+    // gesture (e.g. Nuvio's seek). Reset on every DOWN.
+    private boolean mMonitorClaimed = false;
     private Context mOverlayContext;                   // SystemUI context for InputManager access
 
     // ── Entry point ───────────────────────────────────────────────────────────
@@ -776,6 +785,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mDensity = context.getResources().getDisplayMetrics().density;
             mBaseSlopPx = Math.max(
                     ViewConfiguration.get(context).getScaledTouchSlop(), 12f * mDensity);
+            mEarlyClaimSlopPx = Math.max(
+                    ViewConfiguration.get(context).getScaledTouchSlop(), 8f * mDensity);
             applyTuning();
 
             mSetTemporaryBrightnessMethod = DisplayManager.class
@@ -1410,6 +1421,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         mGestureActive = false;
         mTouchStartedInStatusBar = false;
         mLastTargetBrightness = -1f;
+        mMonitorClaimed = false;
         // Cancel any delayed clear from the previous gesture, then reset the flag fresh.
         if (mMainHandler != null) mMainHandler.removeCallbacks(mClearSuppressShadeExpand);
         mSuppressShadeExpand = false;
@@ -1667,6 +1679,18 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         return mScreenHeight * STATUS_BAR_Y_FRACTION;
     }
 
+    // True when a fullscreen stream in the strip has turned horizontal-dominant past
+    // the small early-claim slop. Called on MOVE before the brightness gesture has
+    // activated, so the monitor can pilfer the stream from the app before the app's
+    // own gesture detector fires on it. Uses the same dominance ratio as activation,
+    // so vertical swipes (bar reveal) are never claimed here.
+    private boolean isEarlyClaim(MotionEvent me) {
+        if (!mTouchStartedInStatusBar || mScreenWidth == 0) return false;
+        float dx = Math.abs(me.getX() - mDownX);
+        float dy = Math.abs(me.getY() - mDownY);
+        return dx > mEarlyClaimSlopPx && dx > dy * mHorizontalRatio;
+    }
+
     private void initGestureMonitor() {
         if (mGestureReceiver != null) return;
         try {
@@ -1712,14 +1736,19 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                             // stream — the SBV hook handles it; pilfering here would
                             // CANCEL that stream and kill the gesture.
                             if (inStrip && me.getDownTime() != mSbvStreamDownTime) {
-                                boolean wasActive = mGestureActive;
                                 handleTouchEvent(me, true);
 
-                                if (!wasActive && mGestureActive && pilferMethod != null) {
-                                    try {
-                                        pilferMethod.invoke(monitor);
-                                    } catch (Throwable pt) {
-                                        XposedBridge.log(TAG + ": pilfer failed: " + pt);
+                                if (!mMonitorClaimed && pilferMethod != null) {
+                                    boolean claim = mGestureActive
+                                            || (me.getActionMasked() == MotionEvent.ACTION_MOVE
+                                                && mTouchStartedInStatusBar && isEarlyClaim(me));
+                                    if (claim) {
+                                        mMonitorClaimed = true;
+                                        try {
+                                            pilferMethod.invoke(monitor);
+                                        } catch (Throwable pt) {
+                                            XposedBridge.log(TAG + ": pilfer failed: " + pt);
+                                        }
                                     }
                                 }
                             }
