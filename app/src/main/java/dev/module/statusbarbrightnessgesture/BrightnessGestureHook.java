@@ -1331,7 +1331,11 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         String[] candidateClasses = {
                 "com.android.systemui.shade.ShadeControllerImpl",
                 "com.android.systemui.shade.ShadeControllerSceneImpl",
-                "com.android.systemui.shade.BaseShadeControllerImpl"
+                "com.android.systemui.shade.BaseShadeControllerImpl",
+                "com.android.systemui.shade.domain.interactor.ShadeInteractorImpl",
+                "com.android.systemui.shade.domain.interactor.ShadeInteractorSceneContainerImpl",
+                "com.android.systemui.scene.domain.interactor.SceneInteractor",
+                "com.android.systemui.scene.domain.interactor.LegacySceneInteractorImpl"
         };
         boolean anyHooked = false;
         for (String className : candidateClasses) {
@@ -1339,13 +1343,30 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 Class<?> c = Class.forName(className, false, cl);
                 for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
                     String name = m.getName().toLowerCase(java.util.Locale.US);
-                    if ((name.contains("expandshade") || name.contains("expandqs"))
+                    if ((name.contains("expandshade") || name.contains("expandqs")
+                            || name.contains("expandnotifications") || name.contains("expandquicksettings")
+                            || name.contains("changescene"))
                             && m.getReturnType() == void.class) {
                         m.setAccessible(true);
                         hookMethodFn.invoke(null, m, new XC_MethodHook() {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) {
-                                if (mSuppressShadeExpand) param.setResult(null);
+                                if (mSuppressShadeExpand) {
+                                    param.setResult(null);
+                                    return;
+                                }
+                                if (mBlockLongPressQS && param.args != null) {
+                                    for (Object arg : param.args) {
+                                        if (arg instanceof String) {
+                                            String reason = ((String) arg).toLowerCase(java.util.Locale.US);
+                                            if (reason.contains("longpress") || reason.contains("long_press")) {
+                                                XposedBridge.log(TAG + ": blocked long-press shade expansion (" + arg + ")");
+                                                param.setResult(null);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         });
                         anyHooked = true;
