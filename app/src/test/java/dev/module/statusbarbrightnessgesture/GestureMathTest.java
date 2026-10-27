@@ -2,10 +2,42 @@ package dev.module.statusbarbrightnessgesture;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public final class GestureMathTest {
+
+    @Test
+    public void extraDimRange_holdsHardwareAtMinimum() {
+        assertEquals(100, GestureMath.extraDimStrength(0f));
+        assertEquals(50, GestureMath.extraDimStrength(0.1f));
+        assertEquals(0f, GestureMath.normalBrightnessPosition(0.1f), 0.00001f);
+    }
+
+    @Test
+    public void extraDimBoundary_transitionsToNormalBrightness() {
+        assertEquals(0, GestureMath.extraDimStrength(0.2f));
+        assertEquals(0f, GestureMath.normalBrightnessPosition(0.2f), 0.00001f);
+        assertEquals(0, GestureMath.extraDimStrength(0.6f));
+        assertEquals(0.5f, GestureMath.normalBrightnessPosition(0.6f), 0.00001f);
+        assertEquals(1f, GestureMath.normalBrightnessPosition(1f), 0.00001f);
+    }
+
+    @Test
+    public void extendedRange_clampsEndpointsAndIsMonotonic() {
+        assertEquals(100, GestureMath.extraDimStrength(-1f));
+        assertEquals(0, GestureMath.extraDimStrength(2f));
+        assertEquals(0f, GestureMath.normalBrightnessPosition(-1f), 0f);
+        assertEquals(1f, GestureMath.normalBrightnessPosition(2f), 0f);
+        for (int i = 1; i <= 1000; i++) {
+            float previous = (i - 1) / 1000f;
+            float current = i / 1000f;
+            assertTrue(GestureMath.extraDimStrength(current) <= GestureMath.extraDimStrength(previous));
+            assertTrue(GestureMath.normalBrightnessPosition(current)
+                    >= GestureMath.normalBrightnessPosition(previous));
+        }
+    }
 
     // ── isHorizontalDrag ──────────────────────────────────────────────────────
 

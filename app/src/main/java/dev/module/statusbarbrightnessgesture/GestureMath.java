@@ -27,6 +27,19 @@ final class GestureMath {
 
     private GestureMath() {}
 
+    // Reserve the dimmest fifth for the native Extra Dim color transform.
+    private static final float EXTRA_DIM_END = 0.2f;
+
+    static float normalBrightnessPosition(float fraction) {
+        return Math.max(0f, Math.min(1f,
+                (fraction - EXTRA_DIM_END) / (1f - EXTRA_DIM_END)));
+    }
+
+    static int extraDimStrength(float fraction) {
+        return Math.round(Math.max(0f, Math.min(1f,
+                (EXTRA_DIM_END - fraction) / EXTRA_DIM_END)) * 100f);
+    }
+
     /**
      * True when an absolute movement (dx, dy) from the DOWN point is horizontal-
      * dominant and past the given slop. This is the single rule shared by the

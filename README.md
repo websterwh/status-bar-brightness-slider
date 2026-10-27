@@ -5,6 +5,7 @@ An LSPosed module that adds a horizontal swipe gesture on the status bar to cont
 ## Features
 
 - Swipe left/right on the status bar to adjust brightness
+- Native Extra Dim in the darkest 20% of the slider on supported devices: hardware brightness stays at minimum while dimming intensity increases. Negative indicator percentages show Extra Dim strength; returning to the normal range disables Extra Dim. The range follows the reverse-direction setting too.
 - Brightness indicator in your choice of shape (pill, droplet, circle, star) with customizable color (including Material You), opacity, text color, shadow, and vertical position
 - Auto-brightness toggle via in-app switch or Quick Settings tile, with an option to keep the gesture active while auto-brightness is on
 - Saves and restores manual brightness when toggling auto-brightness

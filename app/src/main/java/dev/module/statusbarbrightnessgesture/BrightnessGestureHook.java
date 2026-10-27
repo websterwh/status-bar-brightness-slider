@@ -104,6 +104,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private float mDownY;
     private float mLastMoveX;   // last finger x processed by onMove during an active drag
     private float mLastTargetBrightness = -1f;
+    private Object mColorDisplayManager;
+    private Method mSetExtraDimActivated;
+    private Method mSetExtraDimStrength;
+    private int mLastExtraDimStrength = -1;
     private boolean mGestureActive = false;
     private boolean mTouchStartedInStatusBar = false;
     // downTime of the touch stream currently owned by the real PhoneStatusBarView window.
@@ -777,6 +781,18 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mDisplayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             mWindowManager  = (WindowManager)  context.getSystemService(Context.WINDOW_SERVICE);
 
+            try {
+                Class<?> colorManager = Class.forName("android.hardware.display.ColorDisplayManager");
+                Object manager = context.getSystemService(colorManager);
+                mSetExtraDimActivated = colorManager.getMethod(
+                        "setReduceBrightColorsActivated", boolean.class);
+                mSetExtraDimStrength = colorManager.getMethod(
+                        "setReduceBrightColorsStrength", int.class);
+                mColorDisplayManager = manager;
+            } catch (ReflectiveOperationException e) {
+                XposedBridge.log(TAG + ": native Extra Dim unavailable: " + e);
+            }
+
             android.graphics.Rect bounds = mWindowManager.getCurrentWindowMetrics().getBounds();
             mScreenWidth  = bounds.width();
             mScreenHeight = bounds.height();
@@ -1230,7 +1246,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         float fraction = positionFraction(fingerX);
         // The pill tracks the finger (position fraction), but the % label shows the
         // brightness value — which is the mirrored fraction when the slider is reversed.
-        int pct = Math.round((mReverseSlider ? 1f - fraction : fraction) * 100f);
+        float level = mReverseSlider ? 1f - fraction : fraction;
+        int strength = mColorDisplayManager == null ? 0 : GestureMath.extraDimStrength(level);
+        int pct = strength > 0 ? -strength : Math.round((mColorDisplayManager == null
+                ? level : GestureMath.normalBrightnessPosition(level)) * 100f);
 
         // Center the pill on the fraction point within the usable range.
         // The pill arrives at its endpoints exactly when brightness reaches 0 / 100%
@@ -1473,6 +1492,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         mGestureActive = false;
         mTouchStartedInStatusBar = false;
         mLastTargetBrightness = -1f;
+        mLastExtraDimStrength = -1;
         mMonitorClaimed = false;
         // Cancel any delayed clear from the previous gesture, then reset the flag fresh.
         if (mMainHandler != null) mMainHandler.removeCallbacks(mClearSuppressShadeExpand);
@@ -1531,6 +1551,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             return true;
         }
         mLastMoveX = x;
+        updateExtraDim(x);
         setTemporaryBrightness(computeBrightness(x));
         showIndicator(x);
         return true;
@@ -1589,6 +1610,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mSuppressShadeExpand = false;
         }
         if (!mGestureActive) { mTouchStartedInStatusBar = false; return false; }
+        if (!cancelled) updateExtraDim(ev.getX());
         float finalBrightness = cancelled && mLastTargetBrightness >= 0
                 ? mLastTargetBrightness
                 : computeBrightness(ev.getX());
@@ -1618,6 +1640,9 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         float fraction = positionFraction(fingerX);
         // Reversed slider: 100% on the left, 0% on the right.
         if (mReverseSlider) fraction = 1f - fraction;
+        if (mColorDisplayManager != null) {
+            fraction = GestureMath.normalBrightnessPosition(fraction);
+        }
         // The curve exponent shapes the finger position in slider-position (gamma)
         // space, and the result goes through the system's own position→brightness
         // curve — so 1.0 behaves exactly like dragging the QS brightness slider,
@@ -1653,6 +1678,27 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     }
 
     // ── Hidden API calls ──────────────────────────────────────────────────────
+
+    private void updateExtraDim(float fingerX) {
+        if (mColorDisplayManager == null) return;
+        float fraction = positionFraction(fingerX);
+        int strength = GestureMath.extraDimStrength(mReverseSlider ? 1f - fraction : fraction);
+        if (strength == mLastExtraDimStrength) return;
+        try {
+            // Set intensity before enabling to avoid flashing the previous intensity.
+            if (strength > 0 && !Boolean.TRUE.equals(
+                    mSetExtraDimStrength.invoke(mColorDisplayManager, strength))) {
+                throw new IllegalStateException("Extra Dim intensity rejected");
+            }
+            if (!Boolean.TRUE.equals(mSetExtraDimActivated.invoke(
+                    mColorDisplayManager, strength > 0))) {
+                throw new IllegalStateException("Extra Dim activation rejected");
+            }
+            mLastExtraDimStrength = strength;
+        } catch (Exception e) {
+            XposedBridge.log(TAG + ": Extra Dim update failed: " + e);
+        }
+    }
 
     private void setTemporaryBrightness(float brightness) {
         if (mSetTemporaryBrightnessMethod == null) return;
