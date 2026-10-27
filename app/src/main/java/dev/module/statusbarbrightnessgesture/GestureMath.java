@@ -58,6 +58,15 @@ final class GestureMath {
         private boolean canEnterExtraDim;
         private boolean extraDimSupported;
         private boolean detentSignalled;
+        private float brighteningTravel;
+        private static final float DETENT_RELEASE_DISTANCE = 0.01f;
+
+        float startingPosition(float currentPosition, boolean automaticBrightness) {
+            // Sensors can raise hardware brightness between two intentional swipes.
+            // Preserve a stop the user just reached, not a sensor-adjusted baseline.
+            return automaticBrightness && detentSignalled && position == EXTRA_DIM_END
+                    ? EXTRA_DIM_END : currentPosition;
+        }
 
         void begin(float initialPosition, boolean supportsExtraDim) {
             position = Math.max(0f, Math.min(1f, initialPosition));
@@ -65,6 +74,7 @@ final class GestureMath {
             // Starting a fresh swipe at minimum is the deliberate second gesture.
             canEnterExtraDim = supportsExtraDim && position <= EXTRA_DIM_END;
             detentSignalled = false;
+            brighteningTravel = 0f;
         }
 
         float position() {
@@ -72,11 +82,21 @@ final class GestureMath {
         }
 
         boolean moveTo(float target) {
+            // Absolute targets must not accumulate merely by being repeated.
+            if (detentSignalled && position == EXTRA_DIM_END) {
+                brighteningTravel = 0f;
+            }
             return move(target - position);
         }
 
         /** Returns true exactly once when this gesture first reaches the barrier. */
         boolean move(float delta) {
+            if (detentSignalled && position == EXTRA_DIM_END) {
+                brighteningTravel = Math.max(0f, brighteningTravel + delta);
+                if (brighteningTravel <= DETENT_RELEASE_DISTANCE) return false;
+                delta = brighteningTravel;
+                brighteningTravel = 0f;
+            }
             float next = Math.max(0f, Math.min(1f, position + delta));
             boolean hit = extraDimSupported && !canEnterExtraDim
                     && delta < 0f && next <= EXTRA_DIM_END;

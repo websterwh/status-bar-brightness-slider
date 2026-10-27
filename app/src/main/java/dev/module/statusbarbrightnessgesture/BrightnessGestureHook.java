@@ -1671,8 +1671,16 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                     && Boolean.TRUE.equals(mIsExtraDimActivated.invoke(mColorDisplayManager))) {
                 strength = (int) mGetExtraDimStrength.invoke(mColorDisplayManager);
             }
-            mRelativeSlider.begin(mColorDisplayManager == null ? normal
-                    : GestureMath.extendedPosition(normal, strength), mColorDisplayManager != null);
+            float initialPosition = mColorDisplayManager == null ? normal
+                    : GestureMath.extendedPosition(normal, strength);
+            boolean automatic = Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.SCREEN_BRIGHTNESS_MODE,
+                    Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
+                    == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC;
+            if (mColorDisplayManager != null && strength == 0) {
+                initialPosition = mRelativeSlider.startingPosition(initialPosition, automatic);
+            }
+            mRelativeSlider.begin(initialPosition, mColorDisplayManager != null);
             mLastTargetBrightness = brightness;
             mLastExtraDimStrength = strength;
             return true;

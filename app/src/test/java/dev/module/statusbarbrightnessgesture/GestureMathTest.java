@@ -9,6 +9,55 @@ import org.junit.Test;
 public final class GestureMathTest {
 
     @Test
+    public void detent_ignoresReleaseJitterAndContinuedDimming() {
+        GestureMath.RelativeSlider slider = new GestureMath.RelativeSlider();
+        slider.begin(0.5f, true);
+        assertTrue(slider.move(-0.4f));
+        assertFalse(slider.move(0.002f));
+        assertFalse(slider.move(0.003f));
+        assertEquals(0.2f, slider.position(), 0f);
+        assertFalse(slider.move(-0.1f));
+        assertEquals(0.2f, slider.position(), 0f);
+        assertFalse(slider.move(0.02f));
+        assertEquals(0.22f, slider.position(), 0.00001f);
+    }
+
+    @Test
+    public void detent_autoBrightnessCannotRearmBarrierBeforeSecondSwipe() {
+        GestureMath.RelativeSlider slider = new GestureMath.RelativeSlider();
+        slider.begin(0.5f, true);
+        assertTrue(slider.move(-0.4f));
+        assertFalse(slider.move(0.001f));
+        // The ambient-light sensor reports a brighter level before the next swipe.
+        slider.begin(slider.startingPosition(0.6f, true), true);
+        assertFalse(slider.move(-0.1f));
+        assertEquals(50, GestureMath.extraDimStrength(slider.position()));
+    }
+
+    @Test
+    public void detent_manualExternalChangesAndDeliberateBrighteningRemainRespected() {
+        GestureMath.RelativeSlider slider = new GestureMath.RelativeSlider();
+        slider.begin(0.5f, true);
+        assertTrue(slider.move(-0.4f));
+        assertEquals(0.7f, slider.startingPosition(0.7f, false), 0f);
+        assertFalse(slider.move(0.03f));
+        assertEquals(0.7f, slider.startingPosition(0.7f, true), 0f);
+    }
+
+    @Test
+    public void absoluteDetent_repeatedJitterTargetsCannotReleaseStop() {
+        GestureMath.RelativeSlider slider = new GestureMath.RelativeSlider();
+        slider.begin(0.6f, true);
+        assertTrue(slider.moveTo(0.1f));
+        for (int i = 0; i < 100; i++) {
+            assertFalse(slider.moveTo(0.205f));
+        }
+        assertEquals(0.2f, slider.position(), 0f);
+        assertFalse(slider.moveTo(0.23f));
+        assertEquals(0.23f, slider.position(), 0.00001f);
+    }
+
+    @Test
     public void absoluteControl_sameTouchPositionIgnoresStartingBrightness() {
         GestureMath.RelativeSlider first = new GestureMath.RelativeSlider();
         GestureMath.RelativeSlider second = new GestureMath.RelativeSlider();
