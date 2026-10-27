@@ -745,9 +745,6 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                             && ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
                         mSbvStreamDownTime = ev.getDownTime();
                     }
-                    XposedBridge.log(TAG + ": touch isSB=" + isStatusBarView
-                            + " act=" + ev.getActionMasked()
-                            + " x=" + ev.getX() + " y=" + ev.getY());
                     boolean wasGestureActive = mGestureActive;
                     boolean handled = handleTouchEvent(ev, isStatusBarView);
                     // While suppress is armed AND an actual drag is in progress, also consume
@@ -1461,9 +1458,6 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         mSuppressShadeExpand = false;
         boolean inRegion = isStatusBarView
                 || (ev.getY() <= mScreenHeight * STATUS_BAR_Y_FRACTION);
-        XposedBridge.log(TAG + ": onDown isSB=" + isStatusBarView
-                + " inRegion=" + inRegion + " y=" + ev.getY()
-                + " threshold=" + (mScreenHeight * STATUS_BAR_Y_FRACTION));
         if (!inRegion) return false;
         mTouchStartedInStatusBar = true;
         mDownX = ev.getX();
@@ -1488,10 +1482,6 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         float x = ev.getX();
         float absDX = Math.abs(x - mDownX);
         float absDY = Math.abs(ev.getY() - mDownY);
-        XposedBridge.log(TAG + ": onMove active=" + mGestureActive
-                + " started=" + mTouchStartedInStatusBar
-                + " dx=" + absDX + " dy=" + absDY
-                + " slop=" + mGestureSlopPx);
         if (!mGestureActive) {
             // Clearly vertical → this is an intentional QS swipe; let the shade open.
             if (mSuppressShadeExpand && GestureMath.isVerticalDrag(absDY, absDX, mGestureSlopPx)) {
