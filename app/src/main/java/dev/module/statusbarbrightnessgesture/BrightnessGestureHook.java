@@ -754,8 +754,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                     // can't reopen the shade mid-drag. Plain taps (no drag ever starts) are
                     // left alone so they still reach the app underneath.
                     boolean consume = handled || (mSuppressShadeExpand
-                            && (isStatusBarView || (wasGestureActive
-                                    && ev.getY() <= mScreenHeight * STATUS_BAR_Y_FRACTION)));
+                            && (isStatusBarView || ev.getY() <= mScreenHeight * STATUS_BAR_Y_FRACTION));
                     if (consume) {
                         param.setResult(true);
                     }
@@ -1642,18 +1641,22 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 return;
             } catch (Throwable ignored) {}   // fall through to Method.invoke
         }
-        try { mSetTemporaryBrightnessMethod.invoke(
-                mDisplayManager, Display.DEFAULT_DISPLAY, brightness); }
-        catch (Throwable t) { XposedBridge.log(TAG + ": setTemporaryBrightness: " + t); }
+        try {
+            mSetTemporaryBrightnessMethod.invoke(
+                    mDisplayManager, Display.DEFAULT_DISPLAY, brightness);
+            XposedBridge.log(TAG + ": setTemporaryBrightness: " + brightness);
+        } catch (Throwable t) { XposedBridge.log(TAG + ": setTemporaryBrightness: " + t); }
         mLastTargetBrightness = brightness;
     }
 
     private void commitBrightness(float brightness) {
         if (mSetBrightnessMethod == null) return;
         mBgExecutor.execute(() -> {
-            try { mSetBrightnessMethod.invoke(
-                    mDisplayManager, Display.DEFAULT_DISPLAY, brightness); }
-            catch (Throwable t) { XposedBridge.log(TAG + ": setBrightness: " + t); }
+            try {
+                mSetBrightnessMethod.invoke(
+                        mDisplayManager, Display.DEFAULT_DISPLAY, brightness);
+                XposedBridge.log(TAG + ": commitBrightness: " + brightness);
+            } catch (Throwable t) { XposedBridge.log(TAG + ": setBrightness: " + t); }
         });
     }
 
