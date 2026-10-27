@@ -1446,7 +1446,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             case MotionEvent.ACTION_DOWN:   return onDown(ev, isStatusBarView);
             case MotionEvent.ACTION_MOVE:   return onMove(ev);
             case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL: return onUpOrCancel(ev);
+            case MotionEvent.ACTION_CANCEL: return onUpOrCancel(ev, isStatusBarView);
             default: return false;
         }
     }
@@ -1562,7 +1562,13 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
         }
     }
 
-    private boolean onUpOrCancel(MotionEvent ev) {
+    private boolean onUpOrCancel(MotionEvent ev, boolean isStatusBarView) {
+        boolean cancelled = ev.getActionMasked() == MotionEvent.ACTION_CANCEL;
+        if (cancelled && isStatusBarView && mSuppressShadeExpand) {
+            // PhoneStatusBarView was cancelled because the shade window / root view claimed
+            // the gesture. Do not kill the active touch stream that the root view is driving.
+            return false;
+        }
         // Delay the clear so the swipe-up monitor's ~100ms deferred expansion still sees
         // the flag set, even if the finger lifted before the expansion fired.
         if (mMainHandler != null) {
@@ -1572,7 +1578,6 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mSuppressShadeExpand = false;
         }
         if (!mGestureActive) { mTouchStartedInStatusBar = false; return false; }
-        boolean cancelled = ev.getActionMasked() == MotionEvent.ACTION_CANCEL;
         float finalBrightness = cancelled && mLastTargetBrightness >= 0
                 ? mLastTargetBrightness
                 : computeBrightness(ev.getX());
