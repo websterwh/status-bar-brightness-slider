@@ -33,13 +33,13 @@
     <string name="settings_indicator_y">Indicator vertical position</string>
     <string name="settings_indicator_y_desc">Distance from the top of the screen</string>
     <string name="settings_haptic">Vibrate on gesture start</string>
-    <string name="settings_haptic_desc">Brief haptic pulse when the swipe is recognised</string>
+    <string name="settings_haptic_desc">Brief pulse when the swipe is recognised. The minimum-brightness stop still ticks when this is off</string>
 
     <string name="settings_section_gesture">Gesture</string>
     <string name="settings_sensitivity">Activation sensitivity</string>
     <string name="settings_sensitivity_desc">Higher = shorter swipe needed; lower = less likely to fire when pulling the shade</string>
     <string name="settings_edge_padding">Rounded-corner padding</string>
-    <string name="settings_edge_padding_desc" formatted="false">Insets the range so 0% and 100% are reachable without reaching the curved screen edges</string>
+    <string name="settings_edge_padding_desc">Keeps the floating indicator clear of the curved screen edges; brightness depends on swipe distance</string>
 
     <string name="settings_section_advanced">Advanced</string>
     <string name="settings_block_longpress">Block long-press Quick Settings</string>
@@ -47,7 +47,7 @@
     <string name="settings_fullscreen_swipe">Fullscreen swipe</string>
     <string name="settings_fullscreen_swipe_desc">Adjust brightness at the top of the screen in fullscreen apps</string>
     <string name="settings_reverse">Reverse direction</string>
-    <string name="settings_reverse_desc" formatted="false">0% on the right, 100% on the left</string>
+    <string name="settings_reverse_desc">Swipe left to brighten and right to dim</string>
 
     <string name="settings_value_format">%1$d%2$s</string>
     <string name="settings_brightness_curve">Brightness curve</string>

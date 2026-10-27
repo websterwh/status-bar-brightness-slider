@@ -107,7 +107,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private Object mColorDisplayManager;
     private Method mSetExtraDimActivated;
     private Method mSetExtraDimStrength;
+    private Method mGetExtraDimStrength;
+    private Method mIsExtraDimActivated;
     private int mLastExtraDimStrength = -1;
+    private final GestureMath.RelativeSlider mRelativeSlider = new GestureMath.RelativeSlider();
     private boolean mGestureActive = false;
     private boolean mTouchStartedInStatusBar = false;
     // downTime of the touch stream currently owned by the real PhoneStatusBarView window.
@@ -788,6 +791,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                         "setReduceBrightColorsActivated", boolean.class);
                 mSetExtraDimStrength = colorManager.getMethod(
                         "setReduceBrightColorsStrength", int.class);
+                mGetExtraDimStrength = colorManager.getMethod("getReduceBrightColorsStrength");
+                mIsExtraDimActivated = colorManager.getMethod("isReduceBrightColorsActivated");
                 mColorDisplayManager = manager;
             } catch (ReflectiveOperationException e) {
                 XposedBridge.log(TAG + ": native Extra Dim unavailable: " + e);
@@ -884,7 +889,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
      * display init (uses cached base slop / density, both defaulted).
      *   - Lower sensitivity → larger required swipe distance and a stricter
      *     horizontal-dominance ratio, so a vertical shade-pull won't misfire.
-     *   - Edge padding insets the usable slider range for rounded corners.
+     *   - Edge padding keeps the floating indicator clear of rounded corners.
      */
     private void applyTuning() {
         int s = Math.max(Prefs.SENSITIVITY_MIN,
@@ -1241,19 +1246,15 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
         mMainHandler.removeCallbacks(mDismissIndicator);
 
-        // Same fraction as the brightness computation, so the pill's position is
-        // always 1-to-1 with the brightness value.
+        // The pill follows the finger; its value comes from relative movement,
+        // not from the finger's absolute location on the status bar.
         float fraction = positionFraction(fingerX);
-        // The pill tracks the finger (position fraction), but the % label shows the
-        // brightness value — which is the mirrored fraction when the slider is reversed.
-        float level = mReverseSlider ? 1f - fraction : fraction;
+        float level = mRelativeSlider.position();
         int strength = mColorDisplayManager == null ? 0 : GestureMath.extraDimStrength(level);
         int pct = strength > 0 ? -strength : Math.round((mColorDisplayManager == null
                 ? level : GestureMath.normalBrightnessPosition(level)) * 100f);
 
-        // Center the pill on the fraction point within the usable range.
-        // The pill arrives at its endpoints exactly when brightness reaches 0 / 100%
-        // — no secondary snap from a disconnected pixel clamp.
+        // Center the pill on the finger within the padded indicator range.
         // Clamp so the PILL (not the shadow-padded window) stops at the screen edges.
         float centerX = mEdgePaddingPx + fraction * (mScreenWidth - 2f * mEdgePaddingPx);
         int xOffset = Math.max(-mIndicatorShadowPad,
@@ -1537,12 +1538,22 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             if (!GestureMath.isHorizontalDrag(absDX, absDY, mGestureSlopPx, mHorizontalRatio)) {
                 return mSuppressShadeExpand;
             }
+            if (!beginRelativeAdjustment()) {
+                mTouchStartedInStatusBar = false;
+                mSuppressShadeExpand = false;
+                return false;
+            }
             mGestureActive = true;
+            mLastMoveX = x;
             cancelShadeGesture(ev.getDownTime());
             if (mHapticEnabled && mStatusBarView != null) {
                 mStatusBarView.performHapticFeedback(
                         android.view.HapticFeedbackConstants.GESTURE_START);
             }
+            // Activation travel only claims the gesture. No brightness jump when
+            // touching a different part of the bar or crossing the touch slop.
+            showIndicator(x);
+            return true;
         } else if (x == mLastMoveX) {
             // Vertical jitter: brightness and the indicator both depend only on x,
             // so re-deriving them (reflective gamma call, label string) is waste.
@@ -1550,9 +1561,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             // stale from a previous gesture.
             return true;
         }
-        mLastMoveX = x;
-        updateExtraDim(x);
-        setTemporaryBrightness(computeBrightness(x));
+        applyRelativeAdjustment(x);
         showIndicator(x);
         return true;
     }
@@ -1610,12 +1619,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mSuppressShadeExpand = false;
         }
         if (!mGestureActive) { mTouchStartedInStatusBar = false; return false; }
-        if (!cancelled) updateExtraDim(ev.getX());
-        float finalBrightness = cancelled && mLastTargetBrightness >= 0
-                ? mLastTargetBrightness
-                : computeBrightness(ev.getX());
-        setTemporaryBrightness(finalBrightness);
-        commitBrightness(finalBrightness);
+        if (!cancelled) applyRelativeAdjustment(ev.getX());
+        if (mLastTargetBrightness >= 0) commitBrightness(mLastTargetBrightness);
         if (mMainHandler != null)
             mMainHandler.postDelayed(mDismissIndicator, INDICATOR_DISMISS_DELAY_MS);
         mGestureActive = false;
@@ -1625,9 +1630,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
     // ── Brightness computation ────────────────────────────────────────────────
 
-    /** Finger x → clamped position fraction [0,1] within the edge-padded slider
-     *  range. Shared by the brightness computation and the indicator so the
-     *  pill's position is always exactly 1-to-1 with the brightness value. */
+    /** Finger x → position of the floating indicator, independent of brightness. */
     private float positionFraction(float fingerX) {
         float usable = mScreenWidth - 2f * mEdgePaddingPx;
         return usable <= 0
@@ -1635,11 +1638,61 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 : Math.max(0f, Math.min(1f, (fingerX - mEdgePaddingPx) / usable));
     }
 
-    private float computeBrightness(float fingerX) {
+    private boolean beginRelativeAdjustment() {
+        try {
+            readBrightnessRange();
+            Display display = mDisplayManager.getDisplay(Display.DEFAULT_DISPLAY);
+            Object info = mGetBrightnessInfoMethod.invoke(display);
+            float brightness = info.getClass().getField("brightness").getFloat(info);
+            if (!Float.isFinite(brightness) || brightness < 0f
+                    || mBrightnessMax <= mBrightnessMin) {
+                throw new IllegalStateException("No current display brightness");
+            }
+            // Invert the ROM's own curve, including the user's curve exponent,
+            // so external QS changes and auto-brightness are respected each swipe.
+            float low = 0f;
+            float high = 1f;
+            for (int i = 0; i < 16; i++) {
+                float mid = (low + high) * 0.5f;
+                if (gammaPositionToLinear(mid) < brightness) low = mid;
+                else high = mid;
+            }
+            float normal = brightness <= mBrightnessMin ? 0f
+                    : (float) Math.pow((low + high) * 0.5f, 1f / mBrightnessCurve);
+            int strength = 0;
+            if (mColorDisplayManager != null
+                    && Boolean.TRUE.equals(mIsExtraDimActivated.invoke(mColorDisplayManager))) {
+                strength = (int) mGetExtraDimStrength.invoke(mColorDisplayManager);
+            }
+            mRelativeSlider.begin(mColorDisplayManager == null ? normal
+                    : GestureMath.extendedPosition(normal, strength), mColorDisplayManager != null);
+            mLastTargetBrightness = brightness;
+            mLastExtraDimStrength = strength;
+            return true;
+        } catch (Exception e) {
+            XposedBridge.log(TAG + ": cannot start relative brightness adjustment: " + e);
+            return false;
+        }
+    }
+
+    private void applyRelativeAdjustment(float fingerX) {
+        float delta = GestureMath.relativeDelta(fingerX, mLastMoveX, mScreenWidth, mReverseSlider);
+        mLastMoveX = fingerX;
+        if (mRelativeSlider.move(delta)) {
+            // The safety detent always ticks, independent of the optional
+            // gesture-start haptic. Android's system haptic setting still applies.
+            View view = mStatusBarView != null ? mStatusBarView : mShadeWindowView;
+            boolean feedback = view != null && view.performHapticFeedback(
+                    android.view.HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE);
+            XposedBridge.log(TAG + ": Extra Dim detent reached; haptic=" + feedback);
+        }
+        updateExtraDim();
+        setTemporaryBrightness(computeBrightness());
+    }
+
+    private float computeBrightness() {
         if (mBrightnessMin < 0) readBrightnessRange();
-        float fraction = positionFraction(fingerX);
-        // Reversed slider: 100% on the left, 0% on the right.
-        if (mReverseSlider) fraction = 1f - fraction;
+        float fraction = mRelativeSlider.position();
         if (mColorDisplayManager != null) {
             fraction = GestureMath.normalBrightnessPosition(fraction);
         }
@@ -1679,10 +1732,9 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
     // ── Hidden API calls ──────────────────────────────────────────────────────
 
-    private void updateExtraDim(float fingerX) {
+    private void updateExtraDim() {
         if (mColorDisplayManager == null) return;
-        float fraction = positionFraction(fingerX);
-        int strength = GestureMath.extraDimStrength(mReverseSlider ? 1f - fraction : fraction);
+        int strength = GestureMath.extraDimStrength(mRelativeSlider.position());
         if (strength == mLastExtraDimStrength) return;
         try {
             // Set intensity before enabling to avoid flashing the previous intensity.

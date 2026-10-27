@@ -40,6 +40,51 @@ final class GestureMath {
                 (EXTRA_DIM_END - fraction) / EXTRA_DIM_END)) * 100f);
     }
 
+    static float extendedPosition(float normalPosition, int extraDimStrength) {
+        return extraDimStrength > 0
+                ? EXTRA_DIM_END * (1f - Math.min(100, extraDimStrength) / 100f)
+                : EXTRA_DIM_END + (1f - EXTRA_DIM_END)
+                        * Math.max(0f, Math.min(1f, normalPosition));
+    }
+
+    static float relativeDelta(float currentX, float previousX, int screenWidth, boolean reverse) {
+        float delta = (currentX - previousX) / Math.max(1, screenWidth);
+        return reverse ? -delta : delta;
+    }
+
+    /** Relative movement with a one-gesture barrier at normal minimum brightness. */
+    static final class RelativeSlider {
+        private float position;
+        private boolean canEnterExtraDim;
+        private boolean extraDimSupported;
+        private boolean detentSignalled;
+
+        void begin(float initialPosition, boolean supportsExtraDim) {
+            position = Math.max(0f, Math.min(1f, initialPosition));
+            extraDimSupported = supportsExtraDim;
+            // Starting a fresh swipe at minimum is the deliberate second gesture.
+            canEnterExtraDim = supportsExtraDim && position <= EXTRA_DIM_END;
+            detentSignalled = false;
+        }
+
+        float position() {
+            return position;
+        }
+
+        /** Returns true exactly once when this gesture first reaches the barrier. */
+        boolean move(float delta) {
+            float next = Math.max(0f, Math.min(1f, position + delta));
+            boolean hit = extraDimSupported && !canEnterExtraDim
+                    && delta < 0f && next <= EXTRA_DIM_END;
+            // Discard overshoot: reversing direction responds immediately, even
+            // after dragging a long way against the barrier or a range endpoint.
+            position = hit ? EXTRA_DIM_END : next;
+            if (!hit || detentSignalled) return false;
+            detentSignalled = true;
+            return true;
+        }
+    }
+
     /**
      * True when an absolute movement (dx, dy) from the DOWN point is horizontal-
      * dominant and past the given slop. This is the single rule shared by the

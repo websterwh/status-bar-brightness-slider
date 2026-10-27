@@ -4,13 +4,14 @@ An LSPosed module that adds a horizontal swipe gesture on the status bar to cont
 
 ## Features
 
-- Swipe left/right on the status bar to adjust brightness
-- Native Extra Dim in the darkest 20% of the slider on supported devices: hardware brightness stays at minimum while dimming intensity increases. Negative indicator percentages show Extra Dim strength; returning to the normal range disables Extra Dim. The range follows the reverse-direction setting too.
+- Swipe left/right anywhere on the status bar to adjust from the current brightness. Only movement matters, not where you touch; lift and swipe again to continue adjusting.
+- A haptic stop at normal minimum prevents accidentally entering Extra Dim. Lift and start another dimming swipe to go below the stop. Continuing the same swipe cannot push through it; swiping brighter responds immediately.
+- Native Extra Dim occupies the bottom 20% of the relative adjustment range on supported devices. Negative indicator percentages show dimming strength; returning to the normal range disables Extra Dim. Reverse direction applies to both ranges. The minimum-brightness stop ticks even when the optional gesture-start vibration is off, respecting Android’s system haptic setting.
 - Brightness indicator in your choice of shape (pill, droplet, circle, star) with customizable color (including Material You), opacity, text color, shadow, and vertical position
 - Auto-brightness toggle via in-app switch or Quick Settings tile, with an option to keep the gesture active while auto-brightness is on
 - Saves and restores manual brightness when toggling auto-brightness
 - Adjustable brightness curve — matches the system slider by default, or skew it for finer control at the dim end
-- Configurable sensitivity and edge padding
+- Configurable activation sensitivity and rounded-corner padding for the floating indicator
 - Optional fullscreen swipe support and haptic feedback — brightness swipes don't trigger the back gesture or reveal the status bar
 
 ## Requirements
