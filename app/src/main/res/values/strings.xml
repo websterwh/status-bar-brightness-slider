@@ -36,10 +36,12 @@
     <string name="settings_haptic_desc">Brief pulse when the swipe is recognised. The minimum-brightness stop still ticks when this is off</string>
 
     <string name="settings_section_gesture">Gesture</string>
+    <string name="settings_relative_control">Relative brightness control</string>
+    <string name="settings_relative_control_desc">On: swipe anywhere to adjust from the current brightness. Off: brightness follows your position on the status bar. Extra Dim keeps its haptic stop in both modes</string>
     <string name="settings_sensitivity">Activation sensitivity</string>
     <string name="settings_sensitivity_desc">Higher = shorter swipe needed; lower = less likely to fire when pulling the shade</string>
     <string name="settings_edge_padding">Rounded-corner padding</string>
-    <string name="settings_edge_padding_desc">Keeps the floating indicator clear of the curved screen edges; brightness depends on swipe distance</string>
+    <string name="settings_edge_padding_desc">Keeps the indicator clear of curved screen edges. Also insets the brightness range when relative control is off</string>
 
     <string name="settings_section_advanced">Advanced</string>
     <string name="settings_block_longpress">Block long-press Quick Settings</string>

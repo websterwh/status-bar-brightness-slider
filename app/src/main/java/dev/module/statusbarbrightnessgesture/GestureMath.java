@@ -71,6 +71,10 @@ final class GestureMath {
             return position;
         }
 
+        boolean moveTo(float target) {
+            return move(target - position);
+        }
+
         /** Returns true exactly once when this gesture first reaches the barrier. */
         boolean move(float delta) {
             float next = Math.max(0f, Math.min(1f, position + delta));

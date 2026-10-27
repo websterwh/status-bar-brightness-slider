@@ -30,6 +30,7 @@ public final class Prefs {
     public static final String KEY_FULLSCREEN_SWIPE      = "sbbrightness_fullscreen_swipe";
     public static final String KEY_HAPTIC_FEEDBACK       = "sbbrightness_haptic_feedback";
     public static final String KEY_SENSITIVITY           = "sbbrightness_sensitivity";
+    public static final String KEY_RELATIVE_CONTROL      = "sbbrightness_relative_control";
     public static final String KEY_EDGE_PADDING_DP       = "sbbrightness_edge_padding_dp";
     public static final String KEY_AUTO_BRIGHTNESS        = "sbbrightness_auto_brightness";
     public static final String KEY_KEEP_GESTURE_ON_AUTO   = "sbbrightness_keep_gesture_on_auto";
@@ -70,6 +71,7 @@ public final class Prefs {
     public static final int DEFAULT_FULLSCREEN_SWIPE     = 0;
     public static final int DEFAULT_HAPTIC_FEEDBACK      = 0;
     public static final int DEFAULT_SENSITIVITY          = 7;
+    public static final int DEFAULT_RELATIVE_CONTROL     = 1;
     public static final int DEFAULT_EDGE_PADDING_DP      = 0;
     public static final int DEFAULT_AUTO_BRIGHTNESS      = 0;
     public static final int DEFAULT_KEEP_GESTURE_ON_AUTO = 0;
@@ -95,7 +97,7 @@ public final class Prefs {
     public static final java.util.Set<String> WRITABLE_KEYS =
             java.util.Collections.unmodifiableSet(new java.util.HashSet<>(java.util.Arrays.asList(
                     KEY_GESTURE_ENABLED, KEY_OVERLAY_ENABLED, KEY_BLOCK_LONGPRESS_QS,
-                    KEY_FULLSCREEN_SWIPE, KEY_HAPTIC_FEEDBACK, KEY_SENSITIVITY,
+                    KEY_FULLSCREEN_SWIPE, KEY_HAPTIC_FEEDBACK, KEY_SENSITIVITY, KEY_RELATIVE_CONTROL,
                     KEY_EDGE_PADDING_DP, KEY_AUTO_BRIGHTNESS, KEY_KEEP_GESTURE_ON_AUTO,
                     KEY_INDICATOR_Y_POSITION, KEY_BRIGHTNESS_CURVE, KEY_INDICATOR_SHAPE,
                     KEY_INDICATOR_COLOR_MODE, KEY_INDICATOR_CUSTOM_COLOR, KEY_INDICATOR_ALPHA,

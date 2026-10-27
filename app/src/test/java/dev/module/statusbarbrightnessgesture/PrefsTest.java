@@ -33,7 +33,12 @@ public final class PrefsTest {
 
     @Test
     public void writableKeys_hasExpectedSize() {
-        assertEquals(21, Prefs.WRITABLE_KEYS.size());
+        assertEquals(22, Prefs.WRITABLE_KEYS.size());
+    }
+
+    @Test
+    public void relativeControl_canBePersistedByTheApp() {
+        assertTrue(Prefs.isWritableKey(Prefs.KEY_RELATIVE_CONTROL));
     }
 
     @Test

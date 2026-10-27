@@ -111,6 +111,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     private Method mIsExtraDimActivated;
     private int mLastExtraDimStrength = -1;
     private final GestureMath.RelativeSlider mRelativeSlider = new GestureMath.RelativeSlider();
+    private volatile boolean mRelativeControl = Prefs.DEFAULT_RELATIVE_CONTROL == 1;
+    private boolean mGestureRelativeControl;
     private boolean mGestureActive = false;
     private boolean mTouchStartedInStatusBar = false;
     // downTime of the touch stream currently owned by the real PhoneStatusBarView window.
@@ -663,6 +665,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                     Prefs.KEY_INDICATOR_SHADOW, Prefs.DEFAULT_INDICATOR_SHADOW) == 1;
             mReverseSlider = Settings.Secure.getInt(cr,
                     Prefs.KEY_REVERSE_SLIDER, Prefs.DEFAULT_REVERSE_SLIDER) == 1;
+            mRelativeControl = Settings.Secure.getInt(cr,
+                    Prefs.KEY_RELATIVE_CONTROL, Prefs.DEFAULT_RELATIVE_CONTROL) == 1;
             mIndicatorShape = Settings.Secure.getInt(cr,
                     Prefs.KEY_INDICATOR_SHAPE, Prefs.DEFAULT_INDICATOR_SHAPE);
             mMainLight = Settings.Secure.getInt(cr, Prefs.KEY_MAIN_LIGHT, Prefs.DEFAULT_MAIN_LIGHT);
@@ -680,6 +684,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mKeepGestureOnAuto = false;
             mSensitivity = Prefs.DEFAULT_SENSITIVITY;
             mEdgePaddingDp = Prefs.DEFAULT_EDGE_PADDING_DP;
+            mRelativeControl = Prefs.DEFAULT_RELATIVE_CONTROL == 1;
             applyTuning();
             XposedBridge.log(TAG + ": Settings.Secure read failed, defaulting: " + t);
         }
@@ -1246,8 +1251,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
         mMainHandler.removeCallbacks(mDismissIndicator);
 
-        // The pill follows the finger; its value comes from relative movement,
-        // not from the finger's absolute location on the status bar.
+        // The pill follows the finger; its label uses the selected mode's value.
         float fraction = positionFraction(fingerX);
         float level = mRelativeSlider.position();
         int strength = mColorDisplayManager == null ? 0 : GestureMath.extraDimStrength(level);
@@ -1538,7 +1542,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             if (!GestureMath.isHorizontalDrag(absDX, absDY, mGestureSlopPx, mHorizontalRatio)) {
                 return mSuppressShadeExpand;
             }
-            if (!beginRelativeAdjustment()) {
+            if (!beginBrightnessAdjustment()) {
                 mTouchStartedInStatusBar = false;
                 mSuppressShadeExpand = false;
                 return false;
@@ -1550,8 +1554,9 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 mStatusBarView.performHapticFeedback(
                         android.view.HapticFeedbackConstants.GESTURE_START);
             }
-            // Activation travel only claims the gesture. No brightness jump when
-            // touching a different part of the bar or crossing the touch slop.
+            // Relative mode ignores activation travel. Absolute mode intentionally
+            // goes straight to the touched position, subject to the Extra Dim stop.
+            if (!mGestureRelativeControl) applyBrightnessAdjustment(x);
             showIndicator(x);
             return true;
         } else if (x == mLastMoveX) {
@@ -1561,7 +1566,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             // stale from a previous gesture.
             return true;
         }
-        applyRelativeAdjustment(x);
+        applyBrightnessAdjustment(x);
         showIndicator(x);
         return true;
     }
@@ -1619,7 +1624,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mSuppressShadeExpand = false;
         }
         if (!mGestureActive) { mTouchStartedInStatusBar = false; return false; }
-        if (!cancelled) applyRelativeAdjustment(ev.getX());
+        if (!cancelled) applyBrightnessAdjustment(ev.getX());
         if (mLastTargetBrightness >= 0) commitBrightness(mLastTargetBrightness);
         if (mMainHandler != null)
             mMainHandler.postDelayed(mDismissIndicator, INDICATOR_DISMISS_DELAY_MS);
@@ -1630,7 +1635,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
 
     // ── Brightness computation ────────────────────────────────────────────────
 
-    /** Finger x → position of the floating indicator, independent of brightness. */
+    /** Finger x → padded indicator position and absolute-mode brightness target. */
     private float positionFraction(float fingerX) {
         float usable = mScreenWidth - 2f * mEdgePaddingPx;
         return usable <= 0
@@ -1638,8 +1643,10 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 : Math.max(0f, Math.min(1f, (fingerX - mEdgePaddingPx) / usable));
     }
 
-    private boolean beginRelativeAdjustment() {
+    private boolean beginBrightnessAdjustment() {
         try {
+            // Preference changes take effect on the next swipe, never mid-drag.
+            mGestureRelativeControl = mRelativeControl;
             readBrightnessRange();
             Display display = mDisplayManager.getDisplay(Display.DEFAULT_DISPLAY);
             Object info = mGetBrightnessInfoMethod.invoke(display);
@@ -1670,15 +1677,19 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             mLastExtraDimStrength = strength;
             return true;
         } catch (Exception e) {
-            XposedBridge.log(TAG + ": cannot start relative brightness adjustment: " + e);
+            XposedBridge.log(TAG + ": cannot start brightness adjustment: " + e);
             return false;
         }
     }
 
-    private void applyRelativeAdjustment(float fingerX) {
+    private void applyBrightnessAdjustment(float fingerX) {
         float delta = GestureMath.relativeDelta(fingerX, mLastMoveX, mScreenWidth, mReverseSlider);
         mLastMoveX = fingerX;
-        if (mRelativeSlider.move(delta)) {
+        float target = positionFraction(fingerX);
+        if (mReverseSlider) target = 1f - target;
+        boolean detent = mGestureRelativeControl
+                ? mRelativeSlider.move(delta) : mRelativeSlider.moveTo(target);
+        if (detent) {
             // The safety detent always ticks, independent of the optional
             // gesture-start haptic. Android's system haptic setting still applies.
             View view = mStatusBarView != null ? mStatusBarView : mShadeWindowView;

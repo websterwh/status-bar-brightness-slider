@@ -200,6 +200,9 @@ public class SettingsActivity extends AppCompatActivity {
         // Gesture
         addSectionLabel(content, dp, getString(R.string.settings_section_gesture));
         buildCard(content, dp, card -> {
+            addSwitch(card, dp, getString(R.string.settings_relative_control),
+                    getString(R.string.settings_relative_control_desc),
+                    Prefs.KEY_RELATIVE_CONTROL, Prefs.DEFAULT_RELATIVE_CONTROL);
             addSlider(card, dp, getString(R.string.settings_sensitivity),
                     getString(R.string.settings_sensitivity_desc),
                     Prefs.KEY_SENSITIVITY, Prefs.DEFAULT_SENSITIVITY,

@@ -9,6 +9,31 @@ import org.junit.Test;
 public final class GestureMathTest {
 
     @Test
+    public void absoluteControl_sameTouchPositionIgnoresStartingBrightness() {
+        GestureMath.RelativeSlider first = new GestureMath.RelativeSlider();
+        GestureMath.RelativeSlider second = new GestureMath.RelativeSlider();
+        first.begin(0.4f, true);
+        second.begin(0.9f, true);
+        assertFalse(first.moveTo(0.7f));
+        assertFalse(second.moveTo(0.7f));
+        assertEquals(0.7f, first.position(), 0.00001f);
+        assertEquals(first.position(), second.position(), 0.00001f);
+    }
+
+    @Test
+    public void absoluteControl_retainsDetentAndAllowsNextSwipeBelowIt() {
+        GestureMath.RelativeSlider slider = new GestureMath.RelativeSlider();
+        slider.begin(0.7f, true);
+        assertTrue(slider.moveTo(0.1f));
+        assertEquals(0.2f, slider.position(), 0f);
+        assertFalse(slider.moveTo(0f));
+        assertEquals(0.2f, slider.position(), 0f);
+        slider.begin(slider.position(), true);
+        assertFalse(slider.moveTo(0.1f));
+        assertEquals(50, GestureMath.extraDimStrength(slider.position()));
+    }
+
+    @Test
     public void relativeMovement_isIndependentOfStartingLocation() {
         GestureMath.RelativeSlider left = new GestureMath.RelativeSlider();
         GestureMath.RelativeSlider right = new GestureMath.RelativeSlider();
