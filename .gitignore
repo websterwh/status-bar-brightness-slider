@@ -26,3 +26,8 @@ CLAUDE.md
 
 # Local agent instructions (not published)
 AGENTS.md
+.gjc/
+.agents/
+.cursor/
+*.log
+*.tmp

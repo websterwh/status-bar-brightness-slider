@@ -80,6 +80,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             "com.android.systemui.statusbar.phone.PhoneStatusBarView";
     private static final String SHADE_WINDOW_CLASS =
             "com.android.systemui.shade.NotificationShadeWindowView";
+    private static final String SCENE_WINDOW_ROOT_CLASS =
+            "com.android.systemui.scene.ui.view.SceneWindowRootView";
     private static final String BRIGHTNESS_UTILS_CLASS =
             "com.android.settingslib.display.BrightnessUtils";
     private static final String EDGE_BACK_HANDLER_CLASS =
@@ -257,6 +259,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 lpparam.classLoader, hookMethodFn, true);
         hookTouchTarget(SHADE_WINDOW_CLASS, "dispatchTouchEvent",
                 lpparam.classLoader, hookMethodFn, false);
+        hookTouchTarget(SCENE_WINDOW_ROOT_CLASS, "dispatchTouchEvent",
+                lpparam.classLoader, hookMethodFn, false);
         hookAttachedToWindow(PHONE_STATUS_BAR_VIEW,
                 lpparam.classLoader, hookMethodFn);
         suppressShadeExpansion(lpparam.classLoader, hookMethodFn);
@@ -273,33 +277,43 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     // horizontal swipe starting at the screen edge along the bar never arms the
     // back gesture. Streams starting below the strip are untouched.
     private void hookEdgeBackGesture(ClassLoader classLoader, Method hookMethodFn) {
-        try {
-            Class<?> cls = Class.forName(EDGE_BACK_HANDLER_CLASS, false, classLoader);
-            Method target = cls.getDeclaredMethod(
-                    "onInputEvent", android.view.InputEvent.class);
-            hookMethodFn.invoke(null, target, new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) {
-                    if (!(param.args[0] instanceof MotionEvent)) return;
-                    MotionEvent ev = (MotionEvent) param.args[0];
-                    boolean isDown = ev.getActionMasked() == MotionEvent.ACTION_DOWN;
-                    // No stream suppressed and none starting — skip the
-                    // getDownTime() JNI call (this monitor sees every touch event).
-                    if (!isDown && mBackSuppressDownTime == -1) return;
-                    long downTime = ev.getDownTime();
-                    if (isDown) {
-                        boolean suppress = mGestureEnabled && mScreenHeight > 0
-                                && ev.getY() <= getBackSuppressBottom();
-                        mBackSuppressDownTime = suppress ? downTime : -1;
+        String[] candidateClasses = {
+                EDGE_BACK_HANDLER_CLASS,
+                "com.android.systemui.navigationbar.gestural.DisplayBackGestureHandlerImpl$inputEventReceiver$1"
+        };
+        boolean hooked = false;
+        for (String className : candidateClasses) {
+            try {
+                Class<?> cls = Class.forName(className, false, classLoader);
+                Method target = cls.getDeclaredMethod(
+                        "onInputEvent", android.view.InputEvent.class);
+                hookMethodFn.invoke(null, target, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (!(param.args[0] instanceof MotionEvent)) return;
+                        MotionEvent ev = (MotionEvent) param.args[0];
+                        boolean isDown = ev.getActionMasked() == MotionEvent.ACTION_DOWN;
+                        // No stream suppressed and none starting — skip the
+                        // getDownTime() JNI call (this monitor sees every touch event).
+                        if (!isDown && mBackSuppressDownTime == -1) return;
+                        long downTime = ev.getDownTime();
+                        if (isDown) {
+                            boolean suppress = mGestureEnabled && mScreenHeight > 0
+                                    && ev.getY() <= getBackSuppressBottom();
+                            mBackSuppressDownTime = suppress ? downTime : -1;
+                        }
+                        if (downTime == mBackSuppressDownTime) {
+                            param.setResult(null);
+                        }
                     }
-                    if (downTime == mBackSuppressDownTime) {
-                        param.setResult(null);
-                    }
-                }
-            });
-            XposedBridge.log(TAG + ": hooked EdgeBackGestureHandler.onInputEvent");
-        } catch (Throwable t) {
-            XposedBridge.log(TAG + ": failed to hook EdgeBackGestureHandler: " + t);
+                });
+                XposedBridge.log(TAG + ": hooked " + className + ".onInputEvent");
+                hooked = true;
+                break;
+            } catch (Throwable ignored) {}
+        }
+        if (!hooked) {
+            XposedBridge.log(TAG + ": failed to hook EdgeBackGestureHandler / DisplayBackGestureHandlerImpl");
         }
     }
 
@@ -425,9 +439,7 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 }
                 android.content.ContentResolver cr = mSysContext.getContentResolver();
                 mSysEnabled = Settings.Secure.getInt(cr,
-                            Prefs.KEY_GESTURE_ENABLED, Prefs.DEFAULT_GESTURE_ENABLED) == 1
-                        && Settings.Secure.getInt(cr,
-                            Prefs.KEY_FULLSCREEN_SWIPE, Prefs.DEFAULT_FULLSCREEN_SWIPE) == 1;
+                            Prefs.KEY_GESTURE_ENABLED, Prefs.DEFAULT_GESTURE_ENABLED) == 1;
                 int s = Math.max(Prefs.SENSITIVITY_MIN, Math.min(Prefs.SENSITIVITY_MAX,
                         Settings.Secure.getInt(cr,
                             Prefs.KEY_SENSITIVITY, Prefs.DEFAULT_SENSITIVITY)));
@@ -1319,23 +1331,36 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
     // (The bottom-edge fullscreen swipe-up path is handled separately by collapsing the
     // shade after the ROM opens it — see cancelShadeGesture/collapseShadeIfOpen.)
     private void suppressShadeExpansion(ClassLoader cl, Method hookMethodFn) {
-        try {
-            Class<?> c = Class.forName(
-                    "com.android.systemui.shade.ShadeControllerImpl", false, cl);
-            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
-                if (m.getName().equalsIgnoreCase("instantExpandShade")
-                        && m.getReturnType() == void.class) {
-                    m.setAccessible(true);
-                    hookMethodFn.invoke(null, m, new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            if (mSuppressShadeExpand) param.setResult(null);
-                        }
-                    });
+        String[] candidateClasses = {
+                "com.android.systemui.shade.ShadeControllerImpl",
+                "com.android.systemui.shade.ShadeControllerSceneImpl",
+                "com.android.systemui.shade.BaseShadeControllerImpl"
+        };
+        boolean anyHooked = false;
+        for (String className : candidateClasses) {
+            try {
+                Class<?> c = Class.forName(className, false, cl);
+                for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                    String name = m.getName().toLowerCase(java.util.Locale.US);
+                    if ((name.contains("expandshade") || name.contains("expandqs"))
+                            && m.getReturnType() == void.class) {
+                        m.setAccessible(true);
+                        hookMethodFn.invoke(null, m, new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) {
+                                if (mSuppressShadeExpand) param.setResult(null);
+                            }
+                        });
+                        anyHooked = true;
+                    }
                 }
-            }
-        } catch (Throwable t) {
-            XposedBridge.log(TAG + ": suppressShadeExpansion failed: " + t);
+                if (anyHooked) {
+                    XposedBridge.log(TAG + ": hooked shade expansion on " + className);
+                }
+            } catch (Throwable ignored) {}
+        }
+        if (!anyHooked) {
+            XposedBridge.log(TAG + ": suppressShadeExpansion found no shade controller classes");
         }
     }
 
@@ -1370,6 +1395,8 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
                 XposedBridge.log(TAG + ": hooked flingToHeight "
                         + java.util.Arrays.toString(p));
             }
+        } catch (ClassNotFoundException e) {
+            XposedBridge.log(TAG + ": NotificationPanelViewController not found (Scene Framework active), skipping flingToHeight hook");
         } catch (Throwable t) {
             XposedBridge.log(TAG + ": hookFlingToHeight failed: " + t);
         }
@@ -1463,8 +1490,14 @@ public class BrightnessGestureHook implements IXposedHookLoadPackage {
             if (mSuppressShadeExpand && GestureMath.isVerticalDrag(absDY, absDX, mGestureSlopPx)) {
                 mSuppressShadeExpand = false;
             }
+            if (GestureMath.isHorizontalDrag(absDX, absDY, mEarlyClaimSlopPx, mHorizontalRatio)) {
+                if (!mSuppressShadeExpand) {
+                    mSuppressShadeExpand = true;
+                    cancelShadeGesture(ev.getDownTime());
+                }
+            }
             if (!GestureMath.isHorizontalDrag(absDX, absDY, mGestureSlopPx, mHorizontalRatio)) {
-                return false;
+                return mSuppressShadeExpand;
             }
             mGestureActive = true;
             cancelShadeGesture(ev.getDownTime());
